@@ -1,0 +1,16 @@
+Packet-Type=4
+Packet-Dst-Port=1813
+Acct-Session-Id = "1234"
+Acct-Status-Type = Interim-Update
+Acct-Authentic = RADIUS
+User-Name = "user01"
+NAS-Port = 0
+Called-Station-Id = "ID01 My Wireless"
+Calling-Station-Id = "00-00-00-AA-AA-AA"
+NAS-Port-Type = Wireless-802.11
+Connect-Info = "CONNECT 1Mbps Service"
+Acct-Session-Time = 11
+Acct-Input-Packets = 15
+Acct-Output-Packets = 3
+Acct-Input-Octets = 1407
+Acct-Output-Octets = 467

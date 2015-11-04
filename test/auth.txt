@@ -1,0 +1,4 @@
+User-Name="herp"
+User-Password="derp"
+Packet-Type=1
+Packet-Dst-Port=1813
