@@ -187,8 +187,6 @@ func main() {
 
         // Encode
         nb := Encode(np)
-        //binary.BigEndian.PutUint16(nb[2:4], uint16(len(nb)) ) //uint16(4 + 16 + len(nb[20:])))
-
         // Set right Response Authenticator
         //np.Auth = MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
         h := md5.New()
@@ -204,5 +202,42 @@ func main() {
         }
 
         fmt.Println("Done!")
+    }
+
+    if PacketCode(p.Code) == AccountingRequest {
+        // Acct!
+        var (
+            acctType uint32
+            user string
+            sessionId string
+        )
+        for _, attr := range p.Attrs {
+            if AttributeType(attr.Type) == AcctStatusType {
+                acctType = binary.BigEndian.Uint32(attr.Value)
+            }
+            if AttributeType(attr.Type) == UserName {
+                user = string(attr.Value)
+            }
+            if AttributeType(attr.Type) == AcctSessionId {
+                sessionId = string(attr.Value)
+            }
+        }
+        fmt.Println(fmt.Sprintf(
+            "type=%d sess=%s for user=%s",
+            acctType, sessionId, user,
+        ))
+        /*
+       1      Start
+       2      Stop
+       3      Interim-Update
+       7      Accounting-On
+       8      Accounting-Off
+       9-14   Reserved for Tunnel Accounting
+      15      Reserved for Failed
+        */
+        if acctType == 1 {
+            //
+            fmt.Println("One")
+        }
     }
 }
