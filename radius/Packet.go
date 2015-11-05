@@ -115,7 +115,7 @@ func validate(secret string, p *Packet) bool {
 // Create response packet
 func (p *Packet) Response(secret string, code PacketCode, attrs []PubAttr) []byte {
     n := &Packet{
-        Code: uint8(p.Code),
+        Code: uint8(code),
         Identifier: p.Identifier,
         Auth: p.Auth, // Set req auth
         Len: 0, // Set by Encode
