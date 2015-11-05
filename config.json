@@ -1,0 +1,7 @@
+{
+	"Dsn": "radiusd:supersecret@/vpnxs_radius?strict=true&charset=utf8mb4,utf8",
+	"Listeners": [
+		{"Addr": "127.0.0.1:1812", "Secret": "secret"},
+		{"Addr": "127.0.0.1:1813", "Secret": "secret"}
+	]
+}
