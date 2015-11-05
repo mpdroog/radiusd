@@ -4,7 +4,13 @@ import (
 	"encoding/binary"
 	"bytes"
 	"crypto/md5"
+	"net"
 )
+
+// Decode 4 octets to IPv4 address
+func DecodeIP(b []byte) net.IP {
+	return net.IPv4(b[0], b[1], b[2], b[3])
+}
 
 func DecodeFour(b []byte) uint32 {
 	return binary.BigEndian.Uint32(b)
