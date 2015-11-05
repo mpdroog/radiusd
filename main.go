@@ -1,123 +1,71 @@
 package main
 
 import (
-	"fmt"
-	"io"
+    "flag"
 	"radiusd/radius"
+    "radiusd/config"
+    "radiusd/sync"
+    "radiusd/model"
 )
 
-func auth(w io.Writer, req *radius.Packet) {
-	err := radius.ValidateAuthRequest(req)
-	if err != "" {
-		fmt.Println("auth.begin err=" + err)
-		w.Write(req.Response(
-			radius.AccessReject, []radius.PubAttr{
-				radius.PubAttr{Type: radius.ReplyMessage, Value: []byte(err)},
-			},
-		))
-		return
-	}
-
-	user := string(req.Attrs[radius.UserName].Value)
-	raw := req.Attrs[radius.UserPassword].Value
-	pass := radius.DecryptPassword(raw, req)
-
-	fmt.Println(fmt.Sprintf("auth user=%s pass=%s", user, pass))
-	if user == "herp" && pass == "derp" {
-		w.Write(req.Response(
-			radius.AccessAccept, []radius.PubAttr{
-				radius.PubAttr{Type: radius.ReplyMessage, Value: []byte("Valid.")},
-			},
-		))
-		return
-	}
-
-	w.Write(req.Response(
-		radius.AccessReject, []radius.PubAttr{
-			radius.PubAttr{Type: radius.ReplyMessage, Value: []byte("Invalid user/pass.")},
-		},
-	))
-}
-
-func acctBegin(w io.Writer, req *radius.Packet) {
-	err := radius.ValidateAcctRequest(req)
-	if err != "" {
-		fmt.Println("acct.begin err=" + err)
-		w.Write(req.Response(
-			radius.AccountingResponse, []radius.PubAttr{
-				radius.PubAttr{Type: radius.ReplyMessage, Value: []byte(err)},
-			},
-		))
-		return
-	}
-	user := string(req.Attrs[radius.UserName].Value)
-	sess := string(req.Attrs[radius.AcctSessionId].Value)
-
-	fmt.Println(fmt.Sprintf(
-		"acct.begin sess=%s for user=%s",
-		sess, user,
-	))
-
-	w.Write(req.Response(
-		radius.AccountingResponse, []radius.PubAttr{
-			radius.PubAttr{Type: radius.ReplyMessage, Value: []byte("Gimme those bits")},
-		},
-	))
-}
-
-func acctUpdate(w io.Writer, req *radius.Packet) {
-	err := radius.ValidateAcctRequest(req)
-	if err != "" {
-		fmt.Println("acct.begin err=" + err)
-		w.Write(req.Response(
-			radius.AccountingResponse, []radius.PubAttr{
-				radius.PubAttr{Type: radius.ReplyMessage, Value: []byte(err)},
-			},
-		))
-		return
-	}
-	user := string(req.Attrs[radius.UserName].Value)
-	sess := string(req.Attrs[radius.AcctSessionId].Value)
-
-	sessTime := string(req.Attrs[radius.AcctSessionTime].Value)
-	octIn := string(req.Attrs[radius.AcctInputOctets].Value)
-	octOut := string(req.Attrs[radius.AcctOutputOctets].Value)
-
-	fmt.Println(fmt.Sprintf(
-		"acct.update sess=%s for user=%s sessTime=%s octetsIn=%s octetsOut=%s",
-		sess, user, sessTime, octIn, octOut,
-	))
-
-	w.Write(req.Response(
-		radius.AccountingResponse, []radius.PubAttr{
-			radius.PubAttr{Type: radius.ReplyMessage, Value: []byte("Got it!")},
-		},
-	))
+func listenAndServe(l config.Listener) {
+    if config.Verbose {
+        config.Log.Printf("Listening on " + l.Addr)
+    }
+    if e := radius.ListenAndServe(l.Addr, l.Secret); e != nil {
+        panic(e)
+    }
 }
 
 func main() {
+    var configPath string
+    flag.BoolVar(&config.Debug, "d", false, "Debug packetdata")
+    flag.BoolVar(&config.Verbose, "v", false, "Show all that happens")
+    flag.StringVar(&configPath, "c", "./config.json", "Configuration")
+    flag.Parse()
+
+    if e := config.Init(configPath); e != nil {
+        panic(e)
+    }
+    if e := sync.Init(); e != nil {
+        panic(e)
+    }
+    if config.Verbose {
+        config.Log.Printf("%+v", config.C)
+    }
+    if config.Debug {
+        config.Log.Printf("Auth RFC2865 https://tools.ietf.org/html/rfc2865")
+        config.Log.Printf("Acct RFC2866 https://tools.ietf.org/html/rfc2866")
+    }
+
+    hang, e := model.SessionClear(config.Hostname)
+    if e != nil {
+        panic(e)
+    }
+    if hang != 0 {
+        config.Log.Printf("WARN: Deleted %d sessions", hang)
+    }
+    /*
+        1      Start
+        2      Stop
+        3      Interim-Update
+        7      Accounting-On
+        8      Accounting-Off
+        9-14   Reserved for Tunnel Accounting
+       15      Reserved for Failed
+    */
 	radius.HandleFunc(radius.AccessRequest, 0, auth)
 	radius.HandleFunc(radius.AccountingRequest, 1, acctBegin)
 	radius.HandleFunc(radius.AccountingRequest, 3, acctUpdate)
+    radius.HandleFunc(radius.AccountingRequest, 2, acctStop)
 
-	go func() {
-		fmt.Println("Listening on 127.0.0.1:1812")
-		if e := radius.ListenAndServe("127.0.0.1:1812", "secret"); e != nil {
-			panic(e)
-		}
-	}()
-	fmt.Println("Listening on 127.0.0.1:1813")
-	if e := radius.ListenAndServe("127.0.0.1:1813", "secret"); e != nil {
-		panic(e)
-	}
-
-	/*
-	    1      Start
-	    2      Stop
-	    3      Interim-Update
-	    7      Accounting-On
-	    8      Accounting-Off
-	    9-14   Reserved for Tunnel Accounting
-	   15      Reserved for Failed
-	*/
+    go sync.Loop()
+    for idx, listen := range config.C.Listeners {
+        if (idx+1 == len(config.C.Listeners)) {
+            // Run last listener in main thread
+            listenAndServe(listen)
+        } else {
+            go listenAndServe(listen)
+        }
+    }
 }
