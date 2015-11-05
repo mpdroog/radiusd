@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+#set -e
 set -u
 set -x
 # Usage: radclient [options] server[:port] <command> [<secret>]
@@ -21,8 +21,8 @@ set -x
 #  -x          Debugging mode.
 #  -4          Use IPv4 address of server
 #  -6          Use IPv6 address of server.
-#cat auth.txt | radclient 127.0.0.1:1813 auto secret -x
-cat acct-start.txt | radclient 127.0.0.1:1813 auto secret -x
+cat auth.txt | radclient 127.0.0.1 auto secret -x
+cat acct-start.txt | radclient 127.0.0.1 auto secret -x
 
 #radclient 127.0.0.1 auto secret -f acct-update.txt -x
 #radclient 127.0.0.1 auto secret -f acct-stop.txt -x
