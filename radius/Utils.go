@@ -35,6 +35,15 @@ func DecryptPassword(raw []byte, p *Packet) string {
 	return string(raw)
 }
 
+// Create a simple response.
+func DefaultPacket(p *Packet, code PacketCode, msg string) []byte {
+	return p.Response(
+		code, []PubAttr{
+			PubAttr{Type: ReplyMessage, Value: []byte(msg)},
+		},
+	)
+}
+
 func ValidateAuthRequest(p *Packet) string {
 	// An Access-Request SHOULD contain a User-Name attribute.
 	if _, there := p.Attrs[UserName]; !there {
