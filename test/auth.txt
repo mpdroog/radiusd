@@ -1,4 +1,8 @@
 User-Name="herp"
 User-Password="derp"
+NAS-IP-Address="127.0.0.1"
+NAS-Identifier="1"
+NAS-Port="33"
+Nas-Port-Type=Wireless-802.11
 Packet-Type=1
 Packet-Dst-Port=1813
