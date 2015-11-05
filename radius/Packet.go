@@ -13,6 +13,7 @@ import (
 	"crypto/hmac"
 	"crypto/md5"
 	"encoding/binary"
+    "radiusd/config"
 )
 
 type Attr struct {
@@ -65,6 +66,9 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 
 		i = e
 	}
+    if config.Debug {
+        config.Log.Printf("packet.decode: %+v", p)
+    }
 	return p, nil
 }
 
@@ -93,7 +97,9 @@ func encode(p *Packet) []byte {
 
 	// Now set Len
 	binary.BigEndian.PutUint16(b[2:4], uint16(written))
-	//fmt.Println("Enc", b[:written])
+    if config.Debug {
+        config.Log.Printf("packet.encode: %+v", b[:written])
+    }
 	return b[:written]
 }
 
