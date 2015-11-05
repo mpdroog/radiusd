@@ -41,12 +41,12 @@ func ListenAndServe(addr string, secret string) error {
 	    	// TODO: Silently ignore?
 	    	return e
 	    }
-	    p, e := decode(buf, n)
+	    p, e := decode(buf, n, secret)
 	    if e != nil {
 	    	// TODO: Silently ignore decode?
 	    	return e
 	    }
-        if !validate(secret, p) {
+        if !validate(p) {
 	        // TODO: Silently ignore invalidate package?
 	        return fmt.Errorf("Invalid MessageAuthenticator")
     	}

@@ -27,6 +27,7 @@ type PubAttr struct {
 }
 
 type Packet struct {
+    secret string // shared secret
     Code uint8
     Identifier uint8
     Len uint16
@@ -35,8 +36,9 @@ type Packet struct {
 }
 
 // Decode bytes into packet
-func decode(buf []byte, n int) (*Packet, error) {
+func decode(buf []byte, n int, secret string) (*Packet, error) {
     p := &Packet{}
+    p.secret = secret
     p.Code = buf[0]
     p.Identifier = buf[1]
     p.Len = uint16(buf[2] + buf[3])
@@ -94,7 +96,7 @@ func encode(p *Packet) []byte {
 }
 
 // MessageAuthenticate if any
-func validate(secret string, p *Packet) bool {
+func validate(p *Packet) bool {
     if check, ok := p.Attrs[MessageAuthenticator]; ok {
         h := md5.New()
         temp := encode(p)
@@ -102,7 +104,7 @@ func validate(secret string, p *Packet) bool {
         //h.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
         //h.Write(temp[20:])
         h.Write(temp)
-        h.Write([]byte(secret))
+        h.Write([]byte(p.secret))
         
         if !hmac.Equal(check.Value, h.Sum(nil)) {
             return false
@@ -113,7 +115,7 @@ func validate(secret string, p *Packet) bool {
 
 
 // Create response packet
-func (p *Packet) Response(secret string, code PacketCode, attrs []PubAttr) []byte {
+func (p *Packet) Response(code PacketCode, attrs []PubAttr) []byte {
     n := &Packet{
         Code: uint8(code),
         Identifier: p.Identifier,
@@ -138,7 +140,7 @@ func (p *Packet) Response(secret string, code PacketCode, attrs []PubAttr) []byt
     // MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
     h := md5.New()
     h.Write(r)
-    h.Write([]byte(secret))
+    h.Write([]byte(p.secret))
     res := h.Sum(nil)[:16]
     copy(r[4:20], res)
 

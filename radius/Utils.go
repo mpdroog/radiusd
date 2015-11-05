@@ -5,23 +5,60 @@ import (
     "bytes"
 )
 
-func DecryptPassword(raw []byte, reqAuth []byte, secret string) string {
+func DecryptPassword(raw []byte, p *Packet) string {
     if len(raw) != 16 {
         panic("User-Password invalid length (not 16 octets)")
     }
 
-	h := md5.New()
-    h.Write([]byte(secret))
-    h.Write(reqAuth)
+    h := md5.New()
+    h.Write([]byte(p.secret))
+    h.Write(p.Auth)
     digest := h.Sum(nil)
 
     for i := 0; i < len(raw); i++ {
-    	// XOR
+        // XOR
         raw[i] = raw[i] ^ digest[i]
     }
 
     raw = bytes.TrimRight(raw, string([]rune{0}))
     return string(raw)
+}
+
+func ValidateAuthRequest(p *Packet) string {
+	// An Access-Request SHOULD contain a User-Name attribute. 
+    if _, there := p.Attrs[UserName]; !there {
+        return "UserName missing"
+    }
+
+	// It MUST contain either a NAS-IP-Address attribute or a NAS-Identifier
+    // attribute (or both).
+    if _, there := p.Attrs[NASIPAddress]; !there {
+        return "NasIPAddress missing"
+    }
+    if _, there := p.Attrs[NASIdentifier]; !there {
+        return "NasIdentifier missing"
+    }
+
+    // An Access-Request MUST contain either a User-Password or a CHAP-
+    // Password or a State.  An Access-Request MUST NOT contain both a
+    // User-Password and a CHAP-Password.
+    if _, there := p.Attrs[UserPassword]; !there {
+        return "UserPassword missing"
+    }
+
+    // An Access-Request SHOULD contain a NAS-Port or NAS-Port-Type
+    // attribute or both unless the type of access being requested does
+    // not involve a port or the NAS does not distinguish among its
+    // ports.
+    if _, there := p.Attrs[NASPort]; !there {
+        return "NASPort missing"
+    }
+    if _, there := p.Attrs[NASPortType]; !there {
+        return "NASPortType missing"
+    }
+
+    // All OK
+    return ""
 }
 
 // Return non-empty string on error
