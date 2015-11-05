@@ -1,9 +1,14 @@
 package radius
 
 import (
+	"encoding/binary"
 	"bytes"
 	"crypto/md5"
 )
+
+func DecodeFour(b []byte) uint32 {
+	return binary.BigEndian.Uint32(b)
+}
 
 func DecryptPassword(raw []byte, p *Packet) string {
 	if len(raw) != 16 {
