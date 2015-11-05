@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"radiusd/config"
 )
 
 var handlers map[string]func(io.Writer, *Packet)
@@ -23,7 +24,17 @@ func HandleFunc(code PacketCode, statusType int, handler func(io.Writer, *Packet
 	handlers[key] = handler
 }
 
-func ListenAndServe(addr string, secret string) error {
+func ListenAndServe(addr string, secret string, cidrs []string) error {
+	var whitelist []*net.IPNet
+
+	for _, cidr := range cidrs {
+		_, net, e := net.ParseCIDR(cidr)
+		if e != nil {
+			return e
+		}
+		whitelist = append(whitelist, net)
+	}
+
 	udpAddr, e := net.ResolveUDPAddr("udp", addr)
 	if e != nil {
 		return e
@@ -41,6 +52,18 @@ func ListenAndServe(addr string, secret string) error {
 			// TODO: Silently ignore?
 			return e
 		}
+		ok := false
+		for _, cidr := range whitelist {
+			if cidr.Contains(client.IP) {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			config.Log.Printf("Request dropped for invalid IP=" + client.String())
+			continue
+		}
+
 		p, e := decode(buf, n, secret)
 		if e != nil {
 			// TODO: Silently ignore decode?

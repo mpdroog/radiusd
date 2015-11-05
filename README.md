@@ -10,4 +10,4 @@ be found in the `/db` dir.
 
 TODO
 ====================
-- IP CIDR check
+- Fix affected err

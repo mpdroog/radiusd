@@ -12,7 +12,7 @@ func listenAndServe(l config.Listener) {
     if config.Verbose {
         config.Log.Printf("Listening on " + l.Addr)
     }
-    if e := radius.ListenAndServe(l.Addr, l.Secret); e != nil {
+    if e := radius.ListenAndServe(l.Addr, l.Secret, l.CIDR); e != nil {
         panic(e)
     }
 }
