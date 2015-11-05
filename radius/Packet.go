@@ -42,7 +42,8 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 	p.secret = secret
 	p.Code = buf[0]
 	p.Identifier = buf[1]
-	p.Len = uint16(buf[2] + buf[3])
+	p.Len = binary.BigEndian.Uint16(buf[2:4])
+
 	p.Auth = buf[4:20] // 16 octets
 	p.Attrs = make(map[AttributeType]Attr)
 
