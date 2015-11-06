@@ -97,6 +97,7 @@ func acctStop(w io.Writer, req *radius.Packet) {
 	}
 	user := string(req.Attrs[radius.UserName].Value)
 	sess := string(req.Attrs[radius.AcctSessionId].Value)
+	nasIp := radius.DecodeIP(req.Attrs[radius.NASIPAddress].Value).String()
 
 	sessTime := radius.DecodeFour(req.Attrs[radius.AcctSessionTime].Value)
 	octIn := radius.DecodeFour(req.Attrs[radius.AcctInputOctets].Value)
@@ -109,7 +110,7 @@ func acctStop(w io.Writer, req *radius.Packet) {
 		)
 	}
 	queue.Queue(user, octIn, octOut)
-	if e := model.SessionRemove(sess); e != nil {
+	if e := model.SessionRemove(sess, user, nasIp); e != nil {
 		w.Write(radius.DefaultPacket(req, radius.AccountingResponse, e.Error()))
 	}
 	w.Write(radius.DefaultPacket(req, radius.AccountingResponse, "Finished accounting."))

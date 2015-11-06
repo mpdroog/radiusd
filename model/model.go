@@ -58,13 +58,17 @@ func SessionAdd(sessionId, user string, nasIp string, hostname string) error {
 	return nil
 }
 
-func SessionRemove(sessionId string) error {
+func SessionRemove(sessionId string, user string, nasIp string) error {
 	res, e := config.DB.Exec(
 		`DELETE FROM
 			session
 		WHERE
-			session_id = ?`,
-		sessionId,
+			session_id = ?
+		AND
+			user = ?
+		AND
+			nas_ip = ?`,
+		sessionId, user, nasIp,
 	)
 	if e != nil {
 		return e
