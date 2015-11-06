@@ -3,15 +3,14 @@ package main
 
 import (
 	"io"
+	"radiusd/config"
+	"radiusd/model"
+	"radiusd/queue"
 	"radiusd/radius"
-    "radiusd/config"
-    "radiusd/model"
-    "radiusd/queue"
 )
 
 func auth(w io.Writer, req *radius.Packet) {
-	e := radius.ValidateAuthRequest(req)
-	if e != "" {
+	if e := radius.ValidateAuthRequest(req); e != "" {
 		if config.Verbose {
 			config.Log.Printf("auth.begin err=" + e)
 		}
@@ -26,9 +25,9 @@ func auth(w io.Writer, req *radius.Packet) {
 	if config.Verbose {
 		config.Log.Printf("auth user=%s pass=%s", user, pass)
 	}
-	state, err := model.Auth(user, pass)
-	if err != nil {
-		config.Log.Printf("auth.begin err=" + err.Error())
+	state, e := model.Auth(user, pass)
+	if e != nil {
+		config.Log.Printf("auth.begin err=" + e.Error())
 		w.Write(radius.DefaultPacket(req, radius.AccessReject, "Database error"))
 		return
 	}
@@ -42,12 +41,11 @@ func auth(w io.Writer, req *radius.Packet) {
 }
 
 func acctBegin(w io.Writer, req *radius.Packet) {
-	err := radius.ValidateAcctRequest(req)
-	if err != "" {
+	if e := radius.ValidateAcctRequest(req); e != "" {
 		if config.Verbose {
-			config.Log.Printf("acct.begin err=" + err)
+			config.Log.Printf("acct.begin err=" + e)
 		}
-		w.Write(radius.DefaultPacket(req, radius.AccountingResponse, err))
+		w.Write(radius.DefaultPacket(req, radius.AccountingResponse, e))
 		return
 	}
 	user := string(req.Attrs[radius.UserName].Value)
@@ -65,12 +63,11 @@ func acctBegin(w io.Writer, req *radius.Packet) {
 }
 
 func acctUpdate(w io.Writer, req *radius.Packet) {
-	err := radius.ValidateAcctRequest(req)
-	if err != "" {
+	if e := radius.ValidateAcctRequest(req); e != "" {
 		if config.Verbose {
-			config.Log.Printf("acct.update err=" + err)
+			config.Log.Printf("acct.update err=" + e)
 		}
-		w.Write(radius.DefaultPacket(req, radius.AccountingResponse, err))
+		w.Write(radius.DefaultPacket(req, radius.AccountingResponse, e))
 		return
 	}
 	user := string(req.Attrs[radius.UserName].Value)
@@ -91,12 +88,11 @@ func acctUpdate(w io.Writer, req *radius.Packet) {
 }
 
 func acctStop(w io.Writer, req *radius.Packet) {
-	err := radius.ValidateAcctRequest(req)
-	if err != "" {
+	if e := radius.ValidateAcctRequest(req); e != "" {
 		if config.Verbose {
-			config.Log.Printf("acct.stop err=" + err)
+			config.Log.Printf("acct.stop err=" + e)
 		}
-		w.Write(radius.DefaultPacket(req, radius.AccountingResponse, err))
+		w.Write(radius.DefaultPacket(req, radius.AccountingResponse, e))
 		return
 	}
 	user := string(req.Attrs[radius.UserName].Value)

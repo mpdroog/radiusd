@@ -1,15 +1,15 @@
-package model;
+package model
 
 import (
+	"fmt"
 	"radiusd/config"
 	"time"
-	"fmt"
 )
 
 type User struct {
 	ActiveUntil *string // Account active until YYYY-MM-DD
-	BlockRemain *int64 // Remaining bandwidth
-	Ok bool
+	BlockRemain *int64  // Remaining bandwidth
+	Ok          bool
 }
 
 func Auth(user string, pass string) (User, error) {

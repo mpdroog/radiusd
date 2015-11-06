@@ -8,7 +8,7 @@ import (
 )
 
 type Stat struct {
-	InOctet uint32
+	InOctet  uint32
 	OutOctet uint32
 }
 
@@ -32,7 +32,7 @@ func Queue(user string, in uint32, out uint32) {
 	} else {
 		remain = Stat{InOctet: in, OutOctet: out}
 	}
-	remains[user] = remain	
+	remains[user] = remain
 }
 
 // Empty queue and return anything in it.
@@ -42,7 +42,7 @@ func Flush() map[string]Stat {
 
 	out := remains
 	remains = nw
-	
+
 	lock.Unlock()
 	return out
 }

@@ -1,22 +1,22 @@
 package config
 
 import (
-	"os"
-	"io/ioutil"
-	"encoding/json"
-	"log"
 	"database/sql"
+	"encoding/json"
 	_ "github.com/go-sql-driver/mysql"
+	"io/ioutil"
+	"log"
+	"os"
 )
 
 type Listener struct {
-	Addr string
+	Addr   string
 	Secret string
-	CIDR []string
+	CIDR   []string
 }
 
 type Conf struct {
-	Dsn string
+	Dsn       string
 	Listeners []Listener
 }
 
@@ -37,10 +37,10 @@ func Init(path string) error {
 	if e := json.Unmarshal(b, C); e != nil {
 		return e
 	}
-    Hostname, e = os.Hostname()
-    if e != nil {
-        panic(e)
-    }
+	Hostname, e = os.Hostname()
+	if e != nil {
+		panic(e)
+	}
 
 	Log = log.New(os.Stdout, "radiusd ", log.LstdFlags)
 	return dbInit("mysql", C.Dsn)

@@ -1,13 +1,13 @@
 package sync
 
 import (
-	"radiusd/config"
 	"database/sql"
 	"fmt"
+	"radiusd/config"
 )
 
 var (
-	acct *sql.Stmt
+	acct  *sql.Stmt
 	usage *sql.Stmt
 )
 
@@ -71,7 +71,7 @@ func UpdateRemaining(user string, remain uint32) error {
 		if e != nil {
 			return e
 		}
-		if (! remain) {
+		if !remain {
 			return fmt.Errorf(
 				"Affect fail for user=%s",
 				user,

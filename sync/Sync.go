@@ -2,9 +2,9 @@ package sync
 
 import (
 	"math/rand"
-	"time"
 	"radiusd/config"
 	"radiusd/queue"
+	"time"
 )
 
 func Loop() {
@@ -22,9 +22,9 @@ func Loop() {
 		}
 		for user, entry := range entries {
 			if e := SessionAcct(user, time.Now().Format("2006-01-02 15:04"), entry.InOctet, entry.OutOctet, config.Hostname); e != nil {
-				config.Log.Printf("WARN: Losing statistic data err=" + e.Error())				
+				config.Log.Printf("WARN: Losing statistic data err=" + e.Error())
 			}
-			if e := UpdateRemaining(user, entry.InOctet + entry.OutOctet); e != nil {
+			if e := UpdateRemaining(user, entry.InOctet+entry.OutOctet); e != nil {
 				config.Log.Printf("WARN: Losing statistic data err=" + e.Error())
 			}
 		}
