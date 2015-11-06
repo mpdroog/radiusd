@@ -110,6 +110,9 @@ func acctStop(w io.Writer, req *radius.Packet) {
 		)
 	}
 	queue.Queue(user, octIn, octOut)
+	if e := model.SessionLog(sess, user, nasIp); e != nil {
+		w.Write(radius.DefaultPacket(req, radius.AccountingResponse, e.Error()))
+	}
 	if e := model.SessionRemove(sess, user, nasIp); e != nil {
 		w.Write(radius.DefaultPacket(req, radius.AccountingResponse, e.Error()))
 	}

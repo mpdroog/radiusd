@@ -86,6 +86,44 @@ func SessionRemove(sessionId string, user string, nasIp string) error {
 	return nil
 }
 
+// Copy session to log
+func SessionLog(sessionId string, user string, nasIp string) error {
+	res, e := config.DB.Exec(
+		`INSERT INTO
+			session_log
+			(assigned_ip, bytes_in, bytes_out, client_ip,
+			nas_ip, packets_in, packets_out, session_id,
+			session_time, user)
+		SELECT
+			assigned_ip, bytes_in, bytes_out, client_ip,
+			nas_ip, packets_in, packets_out, session_id,
+			session_time, user
+		FROM
+			session
+		WHERE
+			session_id = ?
+		AND
+			user = ?
+		AND
+			nas_ip = ?`,
+		sessionId, user, nasIp,
+	)
+	if e != nil {
+		return e
+	}
+	affect, e := res.RowsAffected()
+	if e != nil {
+		return e
+	}
+	if affect != 1 {
+		return fmt.Errorf(
+			"Affect fail for sess=%s",
+			sessionId,
+		)
+	}
+	return nil
+}
+
 // Delete all sessions for this app
 func SessionClear(hostname string) (int64, error) {
 	res, e := config.DB.Exec(
