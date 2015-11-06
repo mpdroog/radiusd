@@ -66,11 +66,34 @@ func UpdateRemaining(user string, remain uint32) error {
 		return e
 	}
 	if affect != 1 {
-		// TODO: zero check?
-		return fmt.Errorf(
-			"Affect fail for user=%s",
-			user,
-		)
+		// Nothing changed, check if this behaviour is correct
+		remain, e := checkRemain(user)
+		if e != nil {
+			return e
+		}
+		if (! remain) {
+			return fmt.Errorf(
+				"Affect fail for user=%s",
+				user,
+			)
+		}
 	}
 	return nil
+}
+
+func checkRemain(user string) (bool, error) {
+	var remain *int64
+	e := config.DB.QueryRow(
+		`SELECT
+			block_remaining
+		FROM
+			user
+		WHERE
+			user = ?`,
+		user,
+	).Scan(remain)
+	if remain == nil || *remain == 0 {
+		return true, e
+	}
+	return false, e
 }
