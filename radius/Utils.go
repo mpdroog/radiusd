@@ -1,9 +1,9 @@
 package radius
 
 import (
-	"encoding/binary"
 	"bytes"
 	"crypto/md5"
+	"encoding/binary"
 	"net"
 )
 
