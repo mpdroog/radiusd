@@ -13,7 +13,3 @@ This daemon uses MariaDB/MySQL to store it's data and the SQL-file can
 be found in the `/db` dir.
 
 ![ERD](https://github.com/mpdroog/radiusd/blob/master/db/ERD.png)
-
-TODO
-====================
-- Fix affected err
