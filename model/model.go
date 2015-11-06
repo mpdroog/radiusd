@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"radiusd/config"
 	"time"
+	"database/sql"
 )
 
 type User struct {
@@ -33,6 +34,17 @@ func Auth(user string, pass string) (User, error) {
 	return u, e
 }
 
+func affectCheck(res sql.Result, expect int64, errMsg error) error {
+	affect, e := res.RowsAffected()
+	if e != nil {
+		return e
+	}
+	if affect != expect {
+		return errMsg
+	}
+	return nil
+}
+
 func SessionAdd(sessionId, user string, nasIp string, hostname string) error {
 	res, e := config.DB.Exec(
 		`INSERT INTO
@@ -45,17 +57,10 @@ func SessionAdd(sessionId, user string, nasIp string, hostname string) error {
 	if e != nil {
 		return e
 	}
-	affect, e := res.RowsAffected()
-	if e != nil {
-		return e
-	}
-	if affect != 1 {
-		return fmt.Errorf(
-			"Affect fail for sess=%s user=%s",
-			sessionId, user,
-		)
-	}
-	return nil
+	return affectCheck(res, 1, fmt.Errorf(
+		"Affect fail for sess=%s user=%s",
+		sessionId, user,
+	))
 }
 
 func SessionRemove(sessionId string, user string, nasIp string) error {
@@ -73,16 +78,10 @@ func SessionRemove(sessionId string, user string, nasIp string) error {
 	if e != nil {
 		return e
 	}
-	affect, e := res.RowsAffected()
-	if e != nil {
-		return e
-	}
-	if affect != 1 {
-		return fmt.Errorf(
-			"Affect fail for sess=%s",
-			sessionId,
-		)
-	}
+	return affectCheck(res, 1, fmt.Errorf(
+		"Affect fail for sess=%s",
+		sessionId,
+	))
 	return nil
 }
 
@@ -111,17 +110,10 @@ func SessionLog(sessionId string, user string, nasIp string) error {
 	if e != nil {
 		return e
 	}
-	affect, e := res.RowsAffected()
-	if e != nil {
-		return e
-	}
-	if affect != 1 {
-		return fmt.Errorf(
-			"Affect fail for sess=%s",
-			sessionId,
-		)
-	}
-	return nil
+	return affectCheck(res, 1, fmt.Errorf(
+		"Affect fail for sess=%s",
+		sessionId,
+	))
 }
 
 // Delete all sessions for this app
