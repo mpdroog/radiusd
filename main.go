@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"radiusd/config"
-	"radiusd/model"
 	"radiusd/radius"
 	"radiusd/sync"
 )
@@ -38,13 +37,6 @@ func main() {
 		config.Log.Printf("Acct RFC2866 https://tools.ietf.org/html/rfc2866")
 	}
 
-	hang, e := model.SessionClear(config.Hostname)
-	if e != nil {
-		panic(e)
-	}
-	if hang != 0 {
-		config.Log.Printf("WARN: Deleted %d sessions", hang)
-	}
 	/*
 	    1      Start
 	    2      Stop

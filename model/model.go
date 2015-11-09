@@ -111,22 +111,7 @@ func SessionLog(sessionId string, user string, nasIp string) error {
 		return e
 	}
 	return affectCheck(res, 1, fmt.Errorf(
-		"Affect fail for sess=%s",
+		"session.log fail for sess=%s",
 		sessionId,
 	))
-}
-
-// Delete all sessions for this app
-func SessionClear(hostname string) (int64, error) {
-	res, e := config.DB.Exec(
-		`DELETE FROM
-			session
-		WHERE
-			hostname = ?`,
-		hostname,
-	)
-	if e != nil {
-		return 0, e
-	}
-	return res.RowsAffected()
 }
