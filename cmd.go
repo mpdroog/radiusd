@@ -47,10 +47,10 @@ func auth(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("auth.begin e=" + e.Error())
 		return
 	}
-	/*if conns >= state.SimultaneousUse {
+	if conns >= limits.SimultaneousUse {
 		w.Write(radius.DefaultPacket(req, radius.AccessReject, "Max conns reached"))
 		return
-	}*/
+	}
 
 	if limits.Ok {
 		reply := []radius.PubAttr{}
