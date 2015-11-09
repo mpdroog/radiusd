@@ -65,7 +65,7 @@ func (t VendorAttr) Encode() PubAttr {
 		raw := []byte(value.Value)
 
 		b := make([]byte, 2+len(raw))
-		b[0] = uint8(t.Type)    // vendor type
+		b[0] = uint8(value.Type) // vendor type
 		b[1] = uint8(2+len(raw)) // vendor length
 		copy(b[2:], raw)
 		//sum += 2+len(raw)
