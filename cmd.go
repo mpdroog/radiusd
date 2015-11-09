@@ -23,7 +23,7 @@ func auth(w io.Writer, req *radius.Packet) {
 	if config.Verbose {
 		config.Log.Printf("auth user=%s pass=%s", user, pass)
 	}
-	state, e := model.Auth(user, pass)
+	limits, e := model.Auth(user, pass)
 	if e != nil {
 		config.Log.Printf("auth.begin e=" + e.Error())
 		return
@@ -34,16 +34,37 @@ func auth(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("auth.begin e=" + e.Error())
 		return
 	}
-	config.Log.Printf("User conns=%d, max=%d", conns, state.SimultaneousUse)
-	if conns >= state.SimultaneousUse {
+	config.Log.Printf("User conns=%d, max=%d", conns, limits.SimultaneousUse)
+	/*if conns >= state.SimultaneousUse {
 		w.Write(radius.DefaultPacket(req, radius.AccessReject, "Max conns reached"))
+		return
+	}*/
+
+	if limits.Ok {
+		reply := []radius.PubAttr{}
+		if limits.DedicatedIP != nil {
+			reply = append(reply, radius.PubAttr{
+				Type: radius.FramedIPAddress,
+				Value: net.ParseIP(*limits.DedicatedIP).To4(),
+			})
+		}
+		if limits.Ratelimit != nil {
+			// 	MT-Rate-Limit = MikrotikRateLimit
+			reply = append(reply, radius.VendorAttr{
+				Type: radius.VendorSpecific,
+				VendorId: radius.MikrotikVendor,
+				Values: []radius.VendorAttrString{radius.VendorAttrString{
+					Type: radius.MikrotikRateLimit,
+					Value: *limits.Ratelimit,
+				}},
+			}.Encode())
+		}
+
+		reply = append(reply, radius.PubAttr{Type: radius.PortLimit, Value: radius.EncodeFour(limits.SimultaneousUse-conns)})
+		w.Write(req.Response(radius.AccountingResponse, reply))
 		return
 	}
 
-	if state.Ok {
-		w.Write(radius.DefaultPacket(req, radius.AccessAccept, "Ok."))
-		return
-	}
 	w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid user/pass"))
 }
 
@@ -67,7 +88,7 @@ func acctBegin(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("acct.begin sess=%s for user=%s on nasIP=%s", sess, user, nasIp)
 	}
 	reply := []radius.PubAttr{}
-	limits, e := model.Limits(user)
+	_, e := model.Limits(user)
 	if e != nil {
 		if e == model.ErrNoRows {
 			config.Log.Printf("acct.begin received invalid user=" + user)
@@ -75,20 +96,6 @@ func acctBegin(w io.Writer, req *radius.Packet) {
 		}
 		config.Log.Printf("acct.begin e=" + e.Error())
 		return
-	}
-
-	if limits.DedicatedIP != nil {
-		reply = append(reply, radius.PubAttr{
-			Type: radius.FramedIPAddress,
-			Value: net.ParseIP(*limits.DedicatedIP).To4(),
-		})
-	}
-	if limits.Ratelimit != nil {
-		/*reply = append(reply, radius.VendorAttr{
-			Type: radius.VendorSpecific,
-			// TODO: Subtype?
-			Value: *limits.Ratelimit,
-		})*/
 	}
 
 	if e := model.SessionAdd(sess, user, nasIp, assignedIp, clientIp); e != nil {
