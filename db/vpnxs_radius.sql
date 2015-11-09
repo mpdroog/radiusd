@@ -64,7 +64,6 @@ CREATE TABLE `session` (
   `assigned_ip` varchar(50) NOT NULL,
   `time_added` int(10) unsigned NOT NULL,
   PRIMARY KEY (`session_id`,`user`,`nas_ip`),
-  UNIQUE KEY `unique_session` (`user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Active connections.';
 
 -- ----------------------------
