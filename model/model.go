@@ -31,6 +31,10 @@ type UserLimits struct {
 
 var ErrNoRows = sql.ErrNoRows
 
+func Begin() (*sql.Tx, error) {
+	return config.DB.Begin()
+}
+
 func Auth(user string, pass string) (User, error) {
 	u := User{}
 	e := config.DB.QueryRow(
@@ -142,8 +146,8 @@ func SessionAdd(sessionId, user, nasIp, assignedIp, clientIp string) error {
 	))
 }
 
-func SessionUpdate(s Session) error {
-	res, e := config.DB.Exec(
+func SessionUpdate(txn *sql.Tx, s Session) error {
+	res, e := txn.Exec(
 		`UPDATE
 			session
 		SET
@@ -171,8 +175,8 @@ func SessionUpdate(s Session) error {
 
 }
 
-func SessionRemove(sessionId, user, nasIp string) error {
-	res, e := config.DB.Exec(
+func SessionRemove(txn *sql.Tx, sessionId, user, nasIp string) error {
+	res, e := txn.Exec(
 		`DELETE FROM
 			session
 		WHERE
@@ -194,8 +198,8 @@ func SessionRemove(sessionId, user, nasIp string) error {
 }
 
 // Copy session to log
-func SessionLog(sessionId string, user string, nasIp string) error {
-	res, e := config.DB.Exec(
+func SessionLog(txn *sql.Tx, sessionId string, user string, nasIp string) error {
+	res, e := txn.Exec(
 		`INSERT INTO
 			session_log
 			(assigned_ip, bytes_in, bytes_out, client_ip,

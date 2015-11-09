@@ -10,6 +10,19 @@ import (
 	"net"
 )
 
+func createSess(req *radius.Packet) model.Session {
+	return model.Session{
+		BytesIn: radius.DecodeFour(req.Attrs[radius.AcctInputOctets].Value),
+		BytesOut: radius.DecodeFour(req.Attrs[radius.AcctOutputOctets].Value),
+		PacketsIn: radius.DecodeFour(req.Attrs[radius.AcctInputPackets].Value),
+		PacketsOut: radius.DecodeFour(req.Attrs[radius.AcctOutputPackets].Value),
+		SessionID: string(req.Attrs[radius.AcctSessionId].Value),
+		SessionTime: radius.DecodeFour(req.Attrs[radius.AcctSessionTime].Value),
+		User: string(req.Attrs[radius.UserName].Value),
+		NasIP: radius.DecodeIP(req.Attrs[radius.NASIPAddress].Value).String(),
+	}
+}
+
 func auth(w io.Writer, req *radius.Packet) {
 	if e := radius.ValidateAuthRequest(req); e != "" {
 		config.Log.Printf("auth.begin e=%s", e)
@@ -110,29 +123,27 @@ func acctUpdate(w io.Writer, req *radius.Packet) {
 		return
 	}
 
-	sess := model.Session{
-		BytesIn: radius.DecodeFour(req.Attrs[radius.AcctInputOctets].Value),
-		BytesOut: radius.DecodeFour(req.Attrs[radius.AcctOutputOctets].Value),
-		PacketsIn: radius.DecodeFour(req.Attrs[radius.AcctInputPackets].Value),
-		PacketsOut: radius.DecodeFour(req.Attrs[radius.AcctOutputPackets].Value),
-		SessionID: string(req.Attrs[radius.AcctSessionId].Value),
-		SessionTime: radius.DecodeFour(req.Attrs[radius.AcctSessionTime].Value),
-		User: string(req.Attrs[radius.UserName].Value),
-		NasIP: radius.DecodeIP(req.Attrs[radius.NASIPAddress].Value).String(),
-	}
-
+	sess := createSess(req)
 	if config.Verbose {
 		config.Log.Printf(
 			"acct.update sess=%s for user=%s on NasIP=%s sessTime=%d octetsIn=%d octetsOut=%d",
 			sess.SessionID, sess.User, sess.NasIP, sess.SessionTime, sess.BytesIn, sess.BytesOut,
 		)
 	}
-	if e := model.SessionUpdate(sess); e != nil {
+	txn, e := model.Begin()
+	if e != nil {
 		config.Log.Printf("acct.update e=" + e.Error())
 		return
 	}
-
+	if e := model.SessionUpdate(txn, sess); e != nil {
+		config.Log.Printf("acct.update e=" + e.Error())
+		return
+	}
 	queue.Queue(sess.User, sess.BytesIn, sess.BytesOut)
+	if e := txn.Commit(); e != nil {
+		config.Log.Printf("acct.update e=" + e.Error())
+		return
+	}
 	w.Write(radius.DefaultPacket(req, radius.AccountingResponse, "Updated accounting."))
 }
 
@@ -155,15 +166,30 @@ func acctStop(w io.Writer, req *radius.Packet) {
 			sess, user, sessTime, octIn, octOut,
 		)
 	}
-	if e := model.SessionLog(sess, user, nasIp); e != nil {
+
+	txn, e := model.Begin()
+	if e != nil {
 		config.Log.Printf("acct.update e=" + e.Error())
 		return
 	}
-	if e := model.SessionRemove(sess, user, nasIp); e != nil {
+	sessModel := createSess(req)
+	if e := model.SessionUpdate(txn, sessModel); e != nil {
+		config.Log.Printf("acct.update e=" + e.Error())
+		return
+	}
+	if e := model.SessionLog(txn, sess, user, nasIp); e != nil {
+		config.Log.Printf("acct.update e=" + e.Error())
+		return
+	}
+	if e := model.SessionRemove(txn, sess, user, nasIp); e != nil {
+		config.Log.Printf("acct.update e=" + e.Error())
+		return
+	}
+	queue.Queue(user, octIn, octOut)
+	if e := txn.Commit(); e != nil {
 		config.Log.Printf("acct.update e=" + e.Error())
 		return
 	}
 
-	queue.Queue(user, octIn, octOut)
 	w.Write(radius.DefaultPacket(req, radius.AccountingResponse, "Finished accounting."))
 }
