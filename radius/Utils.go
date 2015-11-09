@@ -16,6 +16,12 @@ func DecodeFour(b []byte) uint32 {
 	return binary.BigEndian.Uint32(b)
 }
 
+func EncodeFour(in uint32) []byte {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, uint32(in))
+	return b
+}
+
 func DecryptPassword(raw []byte, p *Packet) string {
 	if len(raw) != 16 {
 		panic("User-Password invalid length (not 16 octets)")
