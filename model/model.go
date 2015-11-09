@@ -10,8 +10,25 @@ import (
 type User struct {
 	ActiveUntil *string // Account active until YYYY-MM-DD
 	BlockRemain *int64  // Remaining bandwidth
+	SimultaneousUse int // Max conns allowed
 	Ok          bool
 }
+type UserLimits struct {
+	DedicatedIP *string
+	Ratelimit *string
+}
+type Session struct {
+	BytesIn uint32
+	BytesOut uint32
+	PacketsIn uint32
+	PacketsOut uint32
+	SessionID string
+	SessionTime uint32
+	User string
+	NasIP string
+}
+
+var ErrNoRows = sql.ErrNoRows
 
 func Auth(user string, pass string) (User, error) {
 	u := User{}
@@ -19,18 +36,56 @@ func Auth(user string, pass string) (User, error) {
 		`SELECT
 			block_remaining,
 			active_until,
-			1
+			1,
+			product.simultaneous_use
 		FROM
-			user			
+			user
+		JOIN
+			product
+		ON
+			user.product_id = product.id
 		WHERE
 			user = ?
 		AND
 			pass = ?`,
 		user, pass,
-	).Scan(&u.BlockRemain, &u.ActiveUntil, &u.Ok)
+	).Scan(&u.BlockRemain, &u.ActiveUntil, &u.Ok, &u.SimultaneousUse)
 	if e == config.ErrNoRows {
 		return u, nil
 	}
+	return u, e
+}
+
+func Conns(user string) (int, error) {
+	count := 0;
+	e := config.DB.QueryRow(
+		`SELECT
+			COUNT(*)
+		FROM
+			session
+		WHERE
+			user = ?`,
+		user,
+	).Scan(&count)
+	return count, e
+}
+
+func Limits(user string) (UserLimits, error) {
+	u := UserLimits{}
+	e := config.DB.QueryRow(
+		`SELECT
+			dedicated_ip,
+			CONCAT(ratelimit_up, ratelimit_unit, '/', ratelimit_down, ratelimit_unit)
+		FROM
+			user
+		JOIN
+			product
+		ON
+			user.product_id = product.id
+		WHERE
+			user = ?`,
+		user,
+	).Scan(&u.DedicatedIP, &u.Ratelimit)
 	return u, e
 }
 
@@ -45,25 +100,54 @@ func affectCheck(res sql.Result, expect int64, errMsg error) error {
 	return nil
 }
 
-func SessionAdd(sessionId, user string, nasIp string, hostname string) error {
+func SessionAdd(sessionId, user, nasIp, assignedIp, clientIp string) error {
 	res, e := config.DB.Exec(
 		`INSERT INTO
 			session
-		(session_id, user, time_added, nas_ip, hostname)
+		(session_id, user, time_added, nas_ip, assigned_ip, client_ip, bytes_in, bytes_out, packets_in, packets_out, session_time)
 		VALUES
-		(?, ?, ?, ?, ?)`,
-		sessionId, user, time.Now().Unix(), nasIp, hostname,
+		(?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0)`,
+		sessionId, user, time.Now().Unix(), nasIp, assignedIp, clientIp,
 	)
 	if e != nil {
 		return e
 	}
 	return affectCheck(res, 1, fmt.Errorf(
-		"Affect fail for sess=%s user=%s",
+		"session.add fail for sess=%s user=%s",
 		sessionId, user,
 	))
 }
 
-func SessionRemove(sessionId string, user string, nasIp string) error {
+func SessionUpdate(s Session) error {
+	res, e := config.DB.Exec(
+		`UPDATE
+			session
+		SET
+			bytes_in = ?,
+			bytes_out = ?,
+			packets_in = ?,
+			packets_out = ?,
+			session_time = ?
+		WHERE
+			session_id = ?
+		AND
+			user = ?
+		AND
+			nas_ip = ?`,
+		s.BytesIn, s.BytesOut, s.PacketsIn, s.PacketsOut, s.SessionTime,
+		s.SessionID, s.User, s.NasIP,
+	)
+	if e != nil {
+		return e
+	}
+	return affectCheck(res, 1, fmt.Errorf(
+		"session.update fail for sess=%s user=%s",
+		s.SessionID, s.User,
+	))
+
+}
+
+func SessionRemove(sessionId, user, nasIp string) error {
 	res, e := config.DB.Exec(
 		`DELETE FROM
 			session
@@ -79,7 +163,7 @@ func SessionRemove(sessionId string, user string, nasIp string) error {
 		return e
 	}
 	return affectCheck(res, 1, fmt.Errorf(
-		"Affect fail for sess=%s",
+		"session.remove fail for sess=%s",
 		sessionId,
 	))
 	return nil
@@ -92,11 +176,11 @@ func SessionLog(sessionId string, user string, nasIp string) error {
 			session_log
 			(assigned_ip, bytes_in, bytes_out, client_ip,
 			nas_ip, packets_in, packets_out, session_id,
-			session_time, user)
+			session_time, user, time_added)
 		SELECT
 			assigned_ip, bytes_in, bytes_out, client_ip,
 			nas_ip, packets_in, packets_out, session_id,
-			session_time, user
+			session_time, user, time_added
 		FROM
 			session
 		WHERE
