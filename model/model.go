@@ -103,6 +103,28 @@ func affectCheck(res sql.Result, expect int64, errMsg error) error {
 }
 
 func SessionAdd(sessionId, user, nasIp, assignedIp, clientIp string) error {
+	exists := false
+	e := config.DB.QueryRow(
+		`SELECT
+			1
+		FROM
+			session
+		WHERE
+			user = ?
+		AND
+			session_id = ?
+		AND
+			nas_ip = ?`,
+		user, sessionId, nasIp,
+	).Scan(&exists)
+	if e != nil && e != sql.ErrNoRows {
+		return e
+	}
+	if exists {
+		// Session already stored
+		return nil
+	}
+
 	res, e := config.DB.Exec(
 		`INSERT INTO
 			session
