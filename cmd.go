@@ -12,7 +12,7 @@ import (
 
 func auth(w io.Writer, req *radius.Packet) {
 	if e := radius.ValidateAuthRequest(req); e != "" {
-		config.Log.Printf("auth.begin e=" + e)
+		config.Log.Printf("auth.begin e=%s", e)
 		return
 	}
 
@@ -60,7 +60,7 @@ func auth(w io.Writer, req *radius.Packet) {
 		}
 
 		reply = append(reply, radius.PubAttr{Type: radius.PortLimit, Value: radius.EncodeFour(limits.SimultaneousUse-conns)})
-		w.Write(req.Response(radius.AccountingResponse, reply))
+		w.Write(req.Response(radius.AccessAccept, reply))
 		return
 	}
 
