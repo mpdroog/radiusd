@@ -80,7 +80,7 @@ func acctBegin(w io.Writer, req *radius.Packet) {
 	user := string(req.Attrs[radius.UserName].Value)
 	sess := string(req.Attrs[radius.AcctSessionId].Value)
 	nasIp := radius.DecodeIP(req.Attrs[radius.NASIPAddress].Value).String()
-	clientIp := radius.DecodeIP(req.Attrs[radius.CallingStationId].Value).String()
+	clientIp := string(req.Attrs[radius.CallingStationId].Value)
 	assignedIp := radius.DecodeIP(req.Attrs[radius.FramedIPAddress].Value).String()
 
 	if config.Verbose {
