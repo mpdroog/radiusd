@@ -83,9 +83,12 @@ func ListenAndServe(addr string, secret string, cidrs []string) error {
 		handle, ok := handlers[key]
 		if ok {
 			handle(readBuf, p)
-			if _, e := conn.WriteTo(readBuf.Bytes(), client); e != nil {
-				// TODO: ignore clients that gone away?
-				panic(e)
+			if len(readBuf.Bytes()) != 0 {
+				// Only send a packet if we got anything
+				if _, e := conn.WriteTo(readBuf.Bytes(), client); e != nil {
+					// TODO: ignore clients that gone away?
+					panic(e)
+				}
 			}
 		} else {
 			fmt.Println(fmt.Sprintf("Drop packet with code=%d, statusType=%d", p.Code, statusType))
