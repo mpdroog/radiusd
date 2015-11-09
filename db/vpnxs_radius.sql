@@ -22,15 +22,13 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 DROP TABLE IF EXISTS `accounting`;
 CREATE TABLE `accounting` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `user` varchar(100) NOT NULL,
-  `date` varchar(16) NOT NULL DEFAULT '' COMMENT '5min consolidated YYYY-MM-DD HH:MM',
+  `date` varchar(16) NOT NULL DEFAULT '' COMMENT '1min consolidated YYYY-MM-DD HH:MM',
+  `hostname` varchar(50) NOT NULL COMMENT 'RadiusD-server for unique key',
   `bytes_in` bigint(15) NOT NULL COMMENT 'Octet in',
   `bytes_out` bigint(15) NOT NULL COMMENT 'Octet out',
-  `hostname` varchar(50) NOT NULL COMMENT 'RadiusD-server for unique key',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_acct` (`user`,`date`,`hostname`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4;
+  PRIMARY KEY (`user`,`date`,`hostname`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------
 --  Table structure for `product`
