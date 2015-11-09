@@ -1,5 +1,9 @@
 package radius
 
+import (
+	"encoding/binary"
+)
+
 type VendorAttributeType uint8
 
 // 	Mikrotik
@@ -52,7 +56,8 @@ type VendorAttr struct {
 
 // Convert VendorAttr to generic Attr
 func (t VendorAttr) Encode() PubAttr {
-	var val []byte
+	val := make([]byte, 4)
+	binary.BigEndian.PutUint32(val, t.VendorId)
 
 	//sum := 0
 	// Parse Values
