@@ -72,7 +72,7 @@ func auth(w io.Writer, req *radius.Packet) {
 			}.Encode())
 		}
 
-		reply = append(reply, radius.PubAttr{Type: radius.PortLimit, Value: radius.EncodeFour(limits.SimultaneousUse-conns)})
+		//reply = append(reply, radius.PubAttr{Type: radius.PortLimit, Value: radius.EncodeFour(limits.SimultaneousUse-conns)})
 		w.Write(req.Response(radius.AccessAccept, reply))
 		return
 	}
