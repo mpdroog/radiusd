@@ -12,10 +12,7 @@ import (
 
 func auth(w io.Writer, req *radius.Packet) {
 	if e := radius.ValidateAuthRequest(req); e != "" {
-		if config.Verbose {
-			config.Log.Printf("auth.begin err=" + e)
-		}
-		w.Write(radius.DefaultPacket(req, radius.AccessReject, e))
+		config.Log.Printf("auth.begin e=" + e)
 		return
 	}
 
@@ -28,8 +25,18 @@ func auth(w io.Writer, req *radius.Packet) {
 	}
 	state, e := model.Auth(user, pass)
 	if e != nil {
-		config.Log.Printf("auth.begin err=" + e.Error())
-		w.Write(radius.DefaultPacket(req, radius.AccessReject, "Database error"))
+		config.Log.Printf("auth.begin e=" + e.Error())
+		return
+	}
+
+	conns, e := model.Conns(user)
+	if e != nil {
+		config.Log.Printf("auth.begin e=" + e.Error())
+		return
+	}
+	config.Log.Printf("User conns=%d, max=%d", conns, state.SimultaneousUse)
+	if conns >= state.SimultaneousUse {
+		w.Write(radius.DefaultPacket(req, radius.AccessReject, "Max conns reached"))
 		return
 	}
 
@@ -37,18 +44,6 @@ func auth(w io.Writer, req *radius.Packet) {
 		w.Write(radius.DefaultPacket(req, radius.AccessAccept, "Ok."))
 		return
 	}
-
-	conns, e := model.Conns(user)
-	if e != nil {
-		config.Log.Printf("auth.begin err=" + e.Error())
-		w.Write(radius.DefaultPacket(req, radius.AccessReject, "Database error"))
-		return
-	}
-	if state.SimultaneousUse > conns {
-		w.Write(radius.DefaultPacket(req, radius.AccessReject, "Max conns reached"))
-		return
-	}
-
 	w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid user/pass"))
 }
 
