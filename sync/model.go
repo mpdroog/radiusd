@@ -83,8 +83,6 @@ func UpdateRemaining(user string, remain uint32) error {
 
 func checkRemain(user string) (bool, error) {
 	var remain *int64
-	n := int64(0)
-	remain = &n
 
 	e := config.DB.QueryRow(
 		`SELECT
@@ -94,7 +92,7 @@ func checkRemain(user string) (bool, error) {
 		WHERE
 			user = ?`,
 		user,
-	).Scan(remain)
+	).Scan(&remain)
 	if remain == nil || *remain == 0 {
 		return true, e
 	}
