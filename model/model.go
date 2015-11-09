@@ -8,24 +8,25 @@ import (
 )
 
 type User struct {
-	ActiveUntil *string // Account active until YYYY-MM-DD
-	BlockRemain *int64  // Remaining bandwidth
-	SimultaneousUse int // Max conns allowed
-	Ok          bool
-}
-type UserLimits struct {
-	DedicatedIP *string
-	Ratelimit *string
+	ActiveUntil     *string // Account active until YYYY-MM-DD
+	BlockRemain     *int64  // Remaining bandwidth
+	SimultaneousUse uint32 // Max conns allowed
+	DedicatedIP     *string
+	Ratelimit       *string
+	Ok              bool
 }
 type Session struct {
-	BytesIn uint32
-	BytesOut uint32
-	PacketsIn uint32
-	PacketsOut uint32
-	SessionID string
+	BytesIn     uint32
+	BytesOut    uint32
+	PacketsIn   uint32
+	PacketsOut  uint32
+	SessionID   string
 	SessionTime uint32
-	User string
-	NasIP string
+	User        string
+	NasIP       string
+}
+type UserLimits struct {
+	Exists bool
 }
 
 var ErrNoRows = sql.ErrNoRows
@@ -37,7 +38,9 @@ func Auth(user string, pass string) (User, error) {
 			block_remaining,
 			active_until,
 			1,
-			product.simultaneous_use
+			simultaneous_use,
+			dedicated_ip,
+			CONCAT(ratelimit_up, ratelimit_unit, '/', ratelimit_down, ratelimit_unit)
 		FROM
 			user
 		JOIN
@@ -49,15 +52,15 @@ func Auth(user string, pass string) (User, error) {
 		AND
 			pass = ?`,
 		user, pass,
-	).Scan(&u.BlockRemain, &u.ActiveUntil, &u.Ok, &u.SimultaneousUse)
+	).Scan(&u.BlockRemain, &u.ActiveUntil, &u.Ok, &u.SimultaneousUse, &u.DedicatedIP, &u.Ratelimit)
 	if e == config.ErrNoRows {
 		return u, nil
 	}
 	return u, e
 }
 
-func Conns(user string) (int, error) {
-	count := 0;
+func Conns(user string) (uint32, error) {
+	var count uint32 = 0;
 	e := config.DB.QueryRow(
 		`SELECT
 			COUNT(*)
@@ -74,8 +77,7 @@ func Limits(user string) (UserLimits, error) {
 	u := UserLimits{}
 	e := config.DB.QueryRow(
 		`SELECT
-			dedicated_ip,
-			CONCAT(ratelimit_up, ratelimit_unit, '/', ratelimit_down, ratelimit_unit)
+			1
 		FROM
 			user
 		JOIN
@@ -85,7 +87,7 @@ func Limits(user string) (UserLimits, error) {
 		WHERE
 			user = ?`,
 		user,
-	).Scan(&u.DedicatedIP, &u.Ratelimit)
+	).Scan(&u.Exists)
 	return u, e
 }
 
