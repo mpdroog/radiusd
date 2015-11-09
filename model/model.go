@@ -151,10 +151,10 @@ func SessionUpdate(txn *sql.Tx, s Session) error {
 		`UPDATE
 			session
 		SET
-			bytes_in = ?,
-			bytes_out = ?,
-			packets_in = ?,
-			packets_out = ?,
+			bytes_in = bytes_in + ?,
+			bytes_out = bytes_out + ?,
+			packets_in = packets_in + ?,
+			packets_out = packets_out + ?,
 			session_time = ?
 		WHERE
 			session_id = ?
