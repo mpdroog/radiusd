@@ -11,7 +11,16 @@ func listenAndServe(l config.Listener) {
 	if config.Verbose {
 		config.Log.Printf("Listening on " + l.Addr)
 	}
-	if e := radius.ListenAndServe(l.Addr, l.Secret, l.CIDR); e != nil {
+	conn, e := radius.Listen(l.Addr)
+	if e != nil {
+		panic(e)
+	}
+	config.Sock = append(config.Sock, conn)
+	if e := radius.Serve(conn, l.Secret, l.CIDR); e != nil {
+		if config.Stopping {
+			// Ignore close errors
+			return
+		}
 		panic(e)
 	}
 }
@@ -51,6 +60,7 @@ func main() {
 	radius.HandleFunc(radius.AccountingRequest, 3, acctUpdate)
 	radius.HandleFunc(radius.AccountingRequest, 2, acctStop)
 
+	go Control()
 	go sync.Loop()
 	for idx, listen := range config.C.Listeners {
 		if idx+1 == len(config.C.Listeners) {
@@ -60,4 +70,7 @@ func main() {
 			go listenAndServe(listen)
 		}
 	}
+
+	// Write all stats
+	sync.Force()
 }

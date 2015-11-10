@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"net"
 )
 
 type Listener struct {
@@ -16,18 +17,23 @@ type Listener struct {
 }
 
 type Conf struct {
-	Dsn       string
-	Listeners []Listener
-	DNS       []string
+	Dsn          string
+	Listeners    []Listener
+	DNS          []string
+	ControlListen string
 }
 
-var C *Conf
-var Log *log.Logger
-var Debug bool
-var Verbose bool
-var Hostname string
-var DB *sql.DB
-var ErrNoRows = sql.ErrNoRows
+var (
+	C *Conf
+	Log *log.Logger
+	Debug bool
+	Verbose bool
+	Hostname string
+	DB *sql.DB
+	ErrNoRows = sql.ErrNoRows
+	Stopping bool
+	Sock []*net.UDPConn
+)
 
 func Init(path string) error {
 	b, e := ioutil.ReadFile(path)

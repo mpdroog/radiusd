@@ -1,5 +1,5 @@
 {
-	"Dsn": "radiusd:supersecret@/vpnxs_radius?strict=true&charset=utf8mb4,utf8",
+	"Dsn": "radiusd:supersecretpassword@/vpnxs_radius?strict=true&charset=utf8mb4,utf8",
 	"Listeners": [
 		{"Addr": "127.0.0.1:1812", "Secret": "secret", "CIDR": ["127.0.0.1/32"]},
 		{"Addr": "127.0.0.1:1813", "Secret": "secret", "CIDR": ["127.0.0.1/32"]}
@@ -7,5 +7,6 @@
 	"DNS": [
 		"8.8.8.8",
 		"8.8.4.4"
-	]
+	],
+	"ControlListen": "127.0.0.1:8081"
 }

@@ -24,7 +24,15 @@ func HandleFunc(code PacketCode, statusType int, handler func(io.Writer, *Packet
 	handlers[key] = handler
 }
 
-func ListenAndServe(addr string, secret string, cidrs []string) error {
+func Listen(addr string) (*net.UDPConn, error) {
+	udpAddr, e := net.ResolveUDPAddr("udp", addr)
+	if e != nil {
+		return nil, e
+	}
+	return net.ListenUDP("udp", udpAddr)
+}
+
+func Serve(conn *net.UDPConn, secret string, cidrs []string) error {
 	var whitelist []*net.IPNet
 
 	for _, cidr := range cidrs {
@@ -33,15 +41,6 @@ func ListenAndServe(addr string, secret string, cidrs []string) error {
 			return e
 		}
 		whitelist = append(whitelist, net)
-	}
-
-	udpAddr, e := net.ResolveUDPAddr("udp", addr)
-	if e != nil {
-		return e
-	}
-	conn, e := net.ListenUDP("udp", udpAddr)
-	if e != nil {
-		return e
 	}
 
 	buf := make([]byte, 1024)
