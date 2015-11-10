@@ -5,6 +5,8 @@ Motivation for writing this was the overengineerd 'freeradius' that
 was hard to patch. Adjusting this project to your needs should be
 a breeze!
 
+Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
+
 Implemented RFCs:
 * https://tools.ietf.org/html/rfc2865
 * https://tools.ietf.org/html/rfc2866
