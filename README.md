@@ -24,6 +24,13 @@ with other radiusd-instances (as sessions are administrated in MySQL)
 > To protect yourself against racing conditions between nodes
 > it's adviced to use a replication method like Galera Cluster.
 
+Run test/test.sh
+==============
+radclient is part of the freeradius project
+```
+brew install freeradius-server
+```
+
 Used resources
 ==============
 - http://lost-and-found-narihiro.blogspot.nl/2014/04/freeradius-2112-configure-accounting.html
