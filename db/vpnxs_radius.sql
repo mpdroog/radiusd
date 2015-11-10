@@ -1,7 +1,7 @@
 /*
  Navicat Premium Data Transfer
 
- Source Server         : localhost
+ Source Server         : MariaDB local
  Source Server Type    : MySQL
  Source Server Version : 50505
  Source Host           : localhost
@@ -11,7 +11,7 @@
  Target Server Version : 50505
  File Encoding         : utf-8
 
- Date: 11/09/2015 15:22:52 PM
+ Date: 11/10/2015 10:38:08 AM
 */
 
 SET NAMES utf8;
@@ -27,7 +27,8 @@ CREATE TABLE `accounting` (
   `hostname` varchar(50) NOT NULL COMMENT 'RadiusD-server for unique key',
   `bytes_in` bigint(15) NOT NULL COMMENT 'Octet in',
   `bytes_out` bigint(15) NOT NULL COMMENT 'Octet out',
-  PRIMARY KEY (`user`,`date`,`hostname`)
+  PRIMARY KEY (`user`,`date`,`hostname`),
+  CONSTRAINT `fk_accounting_user` FOREIGN KEY (`user`) REFERENCES `user` (`user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------
@@ -62,6 +63,8 @@ CREATE TABLE `session` (
   `assigned_ip` varchar(50) NOT NULL,
   `time_added` int(10) unsigned NOT NULL,
   PRIMARY KEY (`session_id`,`user`,`nas_ip`),
+  KEY `fk_session_user` (`user`),
+  CONSTRAINT `fk_session_user` FOREIGN KEY (`user`) REFERENCES `user` (`user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Active connections.';
 
 -- ----------------------------
@@ -81,7 +84,9 @@ CREATE TABLE `session_log` (
   `client_ip` varchar(50) NOT NULL,
   `assigned_ip` varchar(50) NOT NULL,
   `time_added` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `fk_session_log_user` (`user`),
+  CONSTRAINT `fk_session_log_user` FOREIGN KEY (`user`) REFERENCES `user` (`user`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COMMENT='Closed connections.';
 
 -- ----------------------------
@@ -98,7 +103,9 @@ CREATE TABLE `user` (
   `product_id` int(10) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_login` (`user`),
-  UNIQUE KEY `unique_ip` (`dedicated_ip`)
+  UNIQUE KEY `unique_ip` (`dedicated_ip`),
+  KEY `fk_user_product` (`product_id`),
+  CONSTRAINT `fk_user_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;
