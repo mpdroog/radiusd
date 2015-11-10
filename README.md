@@ -22,12 +22,6 @@ with other radiusd-instances (as sessions are administrated in MySQL)
 > To protect yourself against racing conditions between nodes
 > it's adviced to use a replication method like Galera Cluster.
 
-TODO
-==============
-- Radius: Simultaneous-Use = 2
-- Radius: Mikrotik-Rate-Limit = 10240k/10240k (limit on 10Mbits up/down).
-- Radius: Framed-IP-Address = 178.20.172.10 to assign IP
-
 Used resources
 ==============
 - http://lost-and-found-narihiro.blogspot.nl/2014/04/freeradius-2112-configure-accounting.html
