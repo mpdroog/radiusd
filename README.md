@@ -20,7 +20,7 @@ Because if MySQL is replicated this daemon shares it state
 with other radiusd-instances (as sessions are administrated in MySQL)
 
 > To protect yourself against racing conditions between nodes
-> it's advices to use a replication method like Galera Cluster.
+> it's adviced to use a replication method like Galera Cluster.
 
 TODO
 ==============
