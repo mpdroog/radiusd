@@ -77,19 +77,14 @@ func auth(w io.Writer, req *radius.Packet) {
 				config.Log.Printf("WARN: DNS in config.json missing 2 DNS-servers for adfilter!")
 			} else {
 				// MS-Primary-DNS-Server
+				// MS-Secondary-DNS-Server
 				reply = append(reply, radius.VendorAttr{
 					Type: radius.VendorSpecific,
 					VendorId: radius.MicrosoftVendor,
 					Values: []radius.VendorAttrString{radius.VendorAttrString{
 						Type: radius.MSPrimaryDNSServer,
 						Value: net.ParseIP(dns[0]).To4(),
-					}},
-				}.Encode())
-				// MSSecondaryDNSServer
-				reply = append(reply, radius.VendorAttr{
-					Type: radius.VendorSpecific,
-					VendorId: radius.MicrosoftVendor,
-					Values: []radius.VendorAttrString{radius.VendorAttrString{
+					}, radius.VendorAttrString{
 						Type: radius.MSSecondaryDNSServer,
 						Value: net.ParseIP(dns[1]).To4(),
 					}},
