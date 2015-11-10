@@ -11,7 +11,7 @@
  Target Server Version : 50505
  File Encoding         : utf-8
 
- Date: 11/10/2015 10:38:08 AM
+ Date: 11/10/2015 12:20:35 PM
 */
 
 SET NAMES utf8;
@@ -101,11 +101,12 @@ CREATE TABLE `user` (
   `active_until` timestamp NULL DEFAULT NULL COMMENT 'Account becomes inactive on given date',
   `dedicated_ip` varchar(50) DEFAULT NULL COMMENT 'Static IP',
   `product_id` int(10) unsigned NOT NULL,
+  `adfilter` tinyint(3) unsigned NOT NULL DEFAULT '1' COMMENT 'DNS Filter',
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_login` (`user`),
   UNIQUE KEY `unique_ip` (`dedicated_ip`),
   KEY `fk_user_product` (`product_id`),
   CONSTRAINT `fk_user_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;

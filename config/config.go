@@ -18,6 +18,7 @@ type Listener struct {
 type Conf struct {
 	Dsn       string
 	Listeners []Listener
+	DNS       []string
 }
 
 var C *Conf

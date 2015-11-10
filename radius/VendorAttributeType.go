@@ -43,9 +43,17 @@ const (
 	MikrotikVendor uint32 = 14988
 )
 
+// Microsoft
+const (
+	MSPrimaryDNSServer VendorAttributeType = 28
+	MSSecondaryDNSServer VendorAttributeType = 29
+
+	MicrosoftVendor uint32 = 311
+)
+
 type VendorAttrString struct {
 	Type VendorAttributeType
-	Value string	
+	Value []byte	
 }
 
 type VendorAttr struct {

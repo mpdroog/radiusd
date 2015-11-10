@@ -67,9 +67,34 @@ func auth(w io.Writer, req *radius.Packet) {
 				VendorId: radius.MikrotikVendor,
 				Values: []radius.VendorAttrString{radius.VendorAttrString{
 					Type: radius.MikrotikRateLimit,
-					Value: *limits.Ratelimit,
+					Value: []byte(*limits.Ratelimit),
 				}},
 			}.Encode())
+		}
+		if limits.Adfilter {
+			dns := config.C.DNS
+			if len(dns) < 2 {
+				config.Log.Printf("WARN: DNS in config.json missing 2 DNS-servers for adfilter!")
+			} else {
+				// MS-Primary-DNS-Server
+				reply = append(reply, radius.VendorAttr{
+					Type: radius.VendorSpecific,
+					VendorId: radius.MicrosoftVendor,
+					Values: []radius.VendorAttrString{radius.VendorAttrString{
+						Type: radius.MSPrimaryDNSServer,
+						Value: net.ParseIP(dns[0]).To4(),
+					}},
+				}.Encode())
+				// MSSecondaryDNSServer
+				reply = append(reply, radius.VendorAttr{
+					Type: radius.VendorSpecific,
+					VendorId: radius.MicrosoftVendor,
+					Values: []radius.VendorAttrString{radius.VendorAttrString{
+						Type: radius.MSSecondaryDNSServer,
+						Value: net.ParseIP(dns[1]).To4(),
+					}},
+				}.Encode())
+			}
 		}
 
 		//reply = append(reply, radius.PubAttr{Type: radius.PortLimit, Value: radius.EncodeFour(limits.SimultaneousUse-conns)})
