@@ -44,7 +44,7 @@ CREATE TABLE `product` (
   `ratelimit_unit` enum('k','M') DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_product` (`product`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------
 --  Table structure for `session`
@@ -87,7 +87,7 @@ CREATE TABLE `session_log` (
   PRIMARY KEY (`id`),
   KEY `fk_session_log_user` (`user`),
   CONSTRAINT `fk_session_log_user` FOREIGN KEY (`user`) REFERENCES `user` (`user`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COMMENT='Closed connections.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Closed connections.';
 
 -- ----------------------------
 --  Table structure for `user`
