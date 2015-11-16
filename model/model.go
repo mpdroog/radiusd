@@ -13,7 +13,8 @@ type User struct {
 	SimultaneousUse uint32 // Max conns allowed
 	DedicatedIP     *string
 	Ratelimit       *string
-	Adfilter        bool
+	DnsOne          *string
+	DnsTwo          *string
 	Ok              bool
 }
 type Session struct {
@@ -46,13 +47,17 @@ func Auth(user string, pass string) (User, error) {
 			simultaneous_use,
 			dedicated_ip,
 			CONCAT(ratelimit_up, ratelimit_unit, '/', ratelimit_down, ratelimit_unit),
-			adfilter
+			dns.one, dns.two
 		FROM
 			user
 		JOIN
 			product
 		ON
 			user.product_id = product.id
+		LEFT JOIN
+			dns
+		ON
+			user.dns_id = dns.id
 		WHERE
 			user = ?
 		AND
@@ -61,7 +66,7 @@ func Auth(user string, pass string) (User, error) {
 	).Scan(
 		&u.BlockRemain, &u.ActiveUntil, &u.Ok,
 		&u.SimultaneousUse, &u.DedicatedIP, &u.Ratelimit,
-		&u.Adfilter,
+		&u.DnsOne, &u.DnsTwo,
 	)
 	if e == config.ErrNoRows {
 		return u, nil

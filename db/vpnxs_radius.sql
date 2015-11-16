@@ -32,6 +32,20 @@ CREATE TABLE `accounting` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------
+--  Table structure for `dns`
+-- ----------------------------
+DROP TABLE IF EXISTS `dns`;
+CREATE TABLE `dns` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(10) NOT NULL,
+  `dns_one` varchar(50) NOT NULL,
+  `dns_two` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_name` (`name`),
+  UNIQUE KEY `unique_dns` (`dns_one`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
 --  Table structure for `product`
 -- ----------------------------
 DROP TABLE IF EXISTS `product`;
@@ -101,12 +115,12 @@ CREATE TABLE `user` (
   `active_until` timestamp NULL DEFAULT NULL COMMENT 'Account becomes inactive on given date',
   `dedicated_ip` varchar(50) DEFAULT NULL COMMENT 'Static IP',
   `product_id` int(10) unsigned NOT NULL,
-  `adfilter` tinyint(3) unsigned NOT NULL DEFAULT '1' COMMENT 'DNS Filter',
+  `dns_id` int(3) unsigned DEFAULT NULL COMMENT 'DNS Pri+Sec',
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_login` (`user`),
   UNIQUE KEY `unique_ip` (`dedicated_ip`),
   KEY `fk_user_product` (`product_id`),
   CONSTRAINT `fk_user_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;
