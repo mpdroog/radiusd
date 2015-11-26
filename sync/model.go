@@ -16,8 +16,8 @@ func Init() error {
 	acct, e = config.DB.Prepare(
 		`INSERT INTO
 			accounting
-		(user, date, bytes_in, bytes_out, hostname)
-		VALUES (?, ?, ?, ?, ?)`,
+		(user, date, bytes_in, bytes_out, packets_in, packets_out, hostname)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 	)
 	if e != nil {
 		return e
@@ -34,7 +34,7 @@ func Init() error {
 	return e
 }
 
-func SessionAcct(user string, date string, octetIn uint32, octetOut uint32, hostname string) error {
+func SessionAcct(user string, date string, octetIn uint32, octetOut uint32, packetIn uint32, packetOut uint32, hostname string) error {
 	res, e := acct.Exec(user, date, octetIn, octetOut, hostname)
 	if e != nil {
 		return e

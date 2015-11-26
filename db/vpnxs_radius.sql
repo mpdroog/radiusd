@@ -25,8 +25,10 @@ CREATE TABLE `accounting` (
   `user` varchar(100) NOT NULL,
   `date` varchar(16) NOT NULL DEFAULT '' COMMENT '1min consolidated YYYY-MM-DD HH:MM',
   `hostname` varchar(50) NOT NULL COMMENT 'RadiusD-server for unique key',
-  `bytes_in` bigint(15) NOT NULL COMMENT 'Octet in',
-  `bytes_out` bigint(15) NOT NULL COMMENT 'Octet out',
+  `bytes_in` bigint(15) unsigned NOT NULL COMMENT 'Octet in',
+  `bytes_out` bigint(15) unsigned NOT NULL COMMENT 'Octet out',
+  `packets_in` int(10) unsigned NOT NULL,
+  `packets_out` int(10) unsigned NOT NULL,
   PRIMARY KEY (`user`,`date`,`hostname`),
   CONSTRAINT `fk_accounting_user` FOREIGN KEY (`user`) REFERENCES `user` (`user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

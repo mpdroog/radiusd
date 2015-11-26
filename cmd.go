@@ -154,7 +154,7 @@ func acctUpdate(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("acct.update e=" + e.Error())
 		return
 	}
-	queue.Queue(sess.User, sess.BytesIn, sess.BytesOut)
+	queue.Queue(sess.User, sess.BytesIn, sess.BytesOut, sess.PacketsIn, sess.PacketsOut)
 	if e := txn.Commit(); e != nil {
 		config.Log.Printf("acct.update e=" + e.Error())
 		return
@@ -174,6 +174,9 @@ func acctStop(w io.Writer, req *radius.Packet) {
 	sessTime := radius.DecodeFour(req.Attrs[radius.AcctSessionTime].Value)
 	octIn := radius.DecodeFour(req.Attrs[radius.AcctInputOctets].Value)
 	octOut := radius.DecodeFour(req.Attrs[radius.AcctOutputOctets].Value)
+
+	packIn := radius.DecodeFour(req.Attrs[radius.AcctInputPackets].Value)
+	packOut := radius.DecodeFour(req.Attrs[radius.AcctOutputPackets].Value)
 
 	if config.Verbose {
 		config.Log.Printf(
@@ -200,7 +203,7 @@ func acctStop(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("acct.update e=" + e.Error())
 		return
 	}
-	queue.Queue(user, octIn, octOut)
+	queue.Queue(user, octIn, octOut, packIn, packOut)
 	if e := txn.Commit(); e != nil {
 		config.Log.Printf("acct.update e=" + e.Error())
 		return

@@ -13,7 +13,7 @@ func save() {
 		config.Log.Printf("sync.flush %d metrics", len(entries))
 	}
 	for user, entry := range entries {
-		if e := SessionAcct(user, time.Now().Format("2006-01-02 15:04"), entry.InOctet, entry.OutOctet, config.Hostname); e != nil {
+		if e := SessionAcct(user, time.Now().Format("2006-01-02 15:04"), entry.InOctet, entry.OutOctet, entry.InPacket, entry.OutPacket, config.Hostname); e != nil {
 			config.Log.Printf("WARN: Losing statistic data err=" + e.Error())
 		}
 		if e := UpdateRemaining(user, entry.InOctet+entry.OutOctet); e != nil {

@@ -10,6 +10,8 @@ import (
 type Stat struct {
 	InOctet  uint32
 	OutOctet uint32
+	InPacket uint32
+	OutPacket uint32
 }
 
 var remains map[string]Stat
@@ -21,7 +23,7 @@ func init() {
 }
 
 // Add to queue
-func Queue(user string, in uint32, out uint32) {
+func Queue(user string, in uint32, out uint32, inPack uint32, outPack uint32) {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -29,8 +31,10 @@ func Queue(user string, in uint32, out uint32) {
 	if ok {
 		remain.InOctet += in
 		remain.OutOctet += out
+		remain.InPacket += inPack
+		remain.OutPacket += outPack
 	} else {
-		remain = Stat{InOctet: in, OutOctet: out}
+		remain = Stat{InOctet: in, OutOctet: out, InPacket: inPack, OutPacket: outPack}
 	}
 	remains[user] = remain
 }
