@@ -1,7 +1,7 @@
 /*
  Navicat Premium Data Transfer
 
- Source Server         : MariaDB local
+ Source Server         : localhost
  Source Server Type    : MySQL
  Source Server Version : 50505
  Source Host           : localhost
@@ -11,7 +11,7 @@
  Target Server Version : 50505
  File Encoding         : utf-8
 
- Date: 11/10/2015 12:20:35 PM
+ Date: 12/03/2015 14:22:59 PM
 */
 
 SET NAMES utf8;
@@ -122,6 +122,8 @@ CREATE TABLE `user` (
   UNIQUE KEY `unique_login` (`user`),
   UNIQUE KEY `unique_ip` (`dedicated_ip`),
   KEY `fk_user_product` (`product_id`),
+  KEY `fk_user_dns_1` (`dns_id`),
+  CONSTRAINT `fk_user_dns_1` FOREIGN KEY (`dns_id`) REFERENCES `dns` (`id`),
   CONSTRAINT `fk_user_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
 
