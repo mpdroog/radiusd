@@ -114,7 +114,7 @@ CREATE TABLE `user` (
   `user` varchar(100) NOT NULL,
   `pass` varchar(255) NOT NULL,
   `block_remaining` bigint(20) unsigned DEFAULT NULL,
-  `active_until` timestamp NULL DEFAULT NULL COMMENT 'Account becomes inactive on given date',
+  `active_until` date NULL DEFAULT NULL COMMENT 'Account becomes inactive on given date',
   `dedicated_ip` varchar(50) DEFAULT NULL COMMENT 'Static IP',
   `product_id` int(10) unsigned NOT NULL,
   `dns_id` int(3) unsigned DEFAULT NULL COMMENT 'DNS Pri+Sec',
