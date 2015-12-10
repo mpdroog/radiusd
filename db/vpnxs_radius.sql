@@ -118,6 +118,8 @@ CREATE TABLE `user` (
   `dedicated_ip` varchar(50) DEFAULT NULL COMMENT 'Static IP',
   `product_id` int(10) unsigned NOT NULL,
   `dns_id` int(3) unsigned DEFAULT NULL COMMENT 'DNS Pri+Sec',
+  `time_added` int(10) unsigned NOT NULL,
+  `time_updated` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_login` (`user`),
   UNIQUE KEY `unique_ip` (`dedicated_ip`),
