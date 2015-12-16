@@ -8,6 +8,7 @@ import (
 )
 
 type User struct {
+	Pass            string
 	ActiveUntil     *string // Account active until YYYY-MM-DD
 	BlockRemain     *int64  // Remaining bandwidth
 	SimultaneousUse uint32 // Max conns allowed
@@ -37,10 +38,11 @@ func Begin() (*sql.Tx, error) {
 	return config.DB.Begin()
 }
 
-func Auth(user string, pass string) (User, error) {
+func Auth(user string) (User, error) {
 	u := User{}
 	e := config.DB.QueryRow(
 		`SELECT
+			pass,
 			block_remaining,
 			active_until,
 			1,
@@ -59,12 +61,10 @@ func Auth(user string, pass string) (User, error) {
 		ON
 			user.dns_id = dns.id
 		WHERE
-			user = ?
-		AND
-			pass = ?`,
-		user, pass,
+			user = ?`,
+		user,
 	).Scan(
-		&u.BlockRemain, &u.ActiveUntil, &u.Ok,
+		&u.Pass, &u.BlockRemain, &u.ActiveUntil, &u.Ok,
 		&u.SimultaneousUse, &u.DedicatedIP, &u.Ratelimit,
 		&u.DnsOne, &u.DnsTwo,
 	)

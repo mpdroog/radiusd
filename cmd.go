@@ -8,6 +8,8 @@ import (
 	"radiusd/queue"
 	"radiusd/radius"
 	"net"
+	"crypto/md5"
+	"bytes"
 )
 
 func createSess(req *radius.Packet) model.Session {
@@ -31,14 +33,53 @@ func auth(w io.Writer, req *radius.Packet) {
 
 	user := string(req.Attrs[radius.UserName].Value)
 	raw := req.Attrs[radius.UserPassword].Value
-	pass := radius.DecryptPassword(raw, req)
-
-	if config.Verbose {
-		config.Log.Printf("auth user=%s pass=%s", user, pass)
-	}
-	limits, e := model.Auth(user, pass)
+	limits, e := model.Auth(user)
 	if e != nil {
 		config.Log.Printf("auth.begin e=" + e.Error())
+		return
+	}
+
+	if _, isPass := req.Attrs[radius.UserPassword]; isPass {
+		pass := radius.DecryptPassword(raw, req)
+		if config.Verbose {
+			config.Log.Printf("PAP user=%s pass=%s", user, pass)
+		}
+		if pass != limits.Pass {
+			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
+			return
+		}
+	} else if _, isChap := req.Attrs[radius.CHAPPassword]; isChap {
+		/*
+	  The Response Value is the one-way hash calculated over a stream of
+      octets consisting of the Identifier, followed by (concatenated
+      with) the "secret", followed by (concatenated with) the Challenge
+      Value.  The length of the Response Value depends upon the hash
+      algorithm used (16 octets for MD5).
+      https://tools.ietf.org/html/rfc1994
+		*/
+		id := req.Attrs[radius.NASIdentifier].Value
+		challenge := req.Attrs[radius.CHAPChallenge].Value
+		hash := req.Attrs[radius.CHAPPassword].Value
+
+		// MD5(ID+secret+challenge)
+		h := md5.New()
+		h.Write([]byte(id))
+		h.Write([]byte(limits.Pass))
+		h.Write([]byte(challenge))
+		calc := h.Sum(nil)
+
+		if bytes.Compare(hash, calc) == 0 {
+			if config.Verbose {
+				config.Log.Printf(
+					"CHAP user=%s mismatch expect=%x, received=%x",
+					user, calc, hash,
+				)
+			}
+			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
+			return
+		}
+	} else {
+		config.Log.Printf("auth.begin Unsupported auth-type (neither PAP/CHAP)")
 		return
 	}
 

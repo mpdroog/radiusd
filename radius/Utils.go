@@ -69,7 +69,9 @@ func ValidateAuthRequest(p *Packet) string {
 	// Password or a State.  An Access-Request MUST NOT contain both a
 	// User-Password and a CHAP-Password.
 	if _, there := p.Attrs[UserPassword]; !there {
-		return "UserPassword missing"
+		if _, there := p.Attrs[CHAPPassword]; !there {
+			return "UserPassword/CHAP-Password missing"
+		}
 	}
 
 	// An Access-Request SHOULD contain a NAS-Port or NAS-Port-Type
