@@ -6,10 +6,10 @@ import (
 	"net"
 	"net/http"
 	"radiusd/config"
-	"github.com/xsnews/webutils/httpd"
-	"github.com/xsnews/webutils/middleware"
-	"github.com/xsnews/webutils/muxdoc"
-	"github.com/xsnews/webutils/ratelimit"
+	"github.com/itshosted/webutils/httpd"
+	"github.com/itshosted/webutils/middleware"
+	"github.com/itshosted/webutils/muxdoc"
+	"github.com/itshosted/webutils/ratelimit"
 )
 
 var (
