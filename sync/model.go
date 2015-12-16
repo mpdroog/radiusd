@@ -35,7 +35,7 @@ func Init() error {
 }
 
 func SessionAcct(user string, date string, octetIn uint32, octetOut uint32, packetIn uint32, packetOut uint32, hostname string) error {
-	res, e := acct.Exec(user, date, octetIn, octetOut, hostname)
+	res, e := acct.Exec(user, date, octetIn, octetOut, packetIn, packetOut, hostname)
 	if e != nil {
 		return e
 	}
