@@ -55,11 +55,11 @@ DROP TABLE IF EXISTS `dns`;
 CREATE TABLE `dns` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(10) NOT NULL,
-  `dns_one` varchar(50) NOT NULL,
-  `dns_two` varchar(50) NOT NULL,
+  `one` varchar(50) NOT NULL,
+  `two` varchar(50) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_name` (`name`),
-  UNIQUE KEY `unique_dns` (`dns_one`)
+  UNIQUE KEY `unique_dns` (`one`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------
