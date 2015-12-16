@@ -38,6 +38,10 @@ func auth(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("auth.begin e=" + e.Error())
 		return
 	}
+	if limits.Pass == "" {
+		w.Write(radius.DefaultPacket(req, radius.AccessReject, "No such user"))
+		return
+	}
 
 	if _, isPass := req.Attrs[radius.UserPassword]; isPass {
 		pass := radius.DecryptPassword(raw, req)
