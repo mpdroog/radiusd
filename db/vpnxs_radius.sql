@@ -34,6 +34,21 @@ CREATE TABLE `accounting` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------
+--  Table structure for `dedi_ip`
+-- ----------------------------
+DROP TABLE IF EXISTS `dedi_ip`;
+CREATE TABLE `dedi_ip` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned DEFAULT NULL,
+  `ip` varchar(50) NOT NULL,
+  `time_added` int(10) unsigned NOT NULL,
+  `time_reserved` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_ip` (`ip`),
+  UNIQUE KEY `unique_user` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
 --  Table structure for `dns`
 -- ----------------------------
 DROP TABLE IF EXISTS `dns`;
