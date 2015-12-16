@@ -72,7 +72,7 @@ func auth(w io.Writer, req *radius.Packet) {
 		h.Write([]byte(challenge))
 		calc := h.Sum(nil)
 
-		if bytes.Compare(hash, calc) == 0 {
+		if bytes.Compare(hash, calc) != 0 {
 			if config.Verbose {
 				config.Log.Printf(
 					"CHAP user=%s mismatch expect=%x, received=%x",
