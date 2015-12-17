@@ -8,8 +8,9 @@ a breeze!
 Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
 Implemented RFCs:
-* https://tools.ietf.org/html/rfc2865
-* https://tools.ietf.org/html/rfc2866
+* auth https://tools.ietf.org/html/rfc2865
+* acct https://tools.ietf.org/html/rfc2866
+* CHAP https://tools.ietf.org/html/rfc1994
 
 This daemon uses MariaDB/MySQL to store it's data and the SQL-file can
 be found in the `/db` dir.
