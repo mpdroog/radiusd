@@ -1,0 +1,9 @@
+User-Name="vpn293b50c891377b94c904b42396e45fd99d"
+CHAP-Password="derpderp"
+CHAP-Challenge="123456789"
+NAS-IP-Address="127.0.0.1"
+NAS-Identifier="MikroTik"
+NAS-Port="33"
+Nas-Port-Type=Wireless-802.11
+Packet-Type=1
+Packet-Dst-Port=1813
