@@ -35,6 +35,7 @@ type Packet struct {
 	Len        uint16
 	Auth       []byte // Request Authenticator
 	Attrs      map[AttributeType]Attr
+	AllAttrs   []Attr
 }
 
 // Decode bytes into packet
@@ -62,6 +63,7 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 		b := i + 2
 		e := b + int(attr.Length) - 2 // Length is including type+Length fields
 		attr.Value = buf[b:e]
+		p.AllAttrs = append(p.AllAttrs, attr)
 		p.Attrs[AttributeType(attr.Type)] = attr
 
 		i = e
