@@ -53,7 +53,7 @@ func TestEncryptMSCHAP1(t *testing.T) {
  MS-CHAP-Challenge = 0x15516e769584c6d8
  MS-CHAP-Response = 0x00010000000000000000000000000000000000000000000000003a3c9f1c7da79174dc167532d360ab5efd01853173c8214e
  */
-func TestAnotherEncrypt(t *testing.T) {
+func TestRadclientEncrypt(t *testing.T) {
 	challenge := []byte{0x15, 0x51, 0x6e, 0x76, 0x95, 0x84, 0xc6, 0xd8}
 	expect := []byte{
 		0x3a, 0x3c, 0x9f, 0x1c, 0x7d, 0xa7, 0x91, 0x74,
@@ -69,3 +69,23 @@ func TestAnotherEncrypt(t *testing.T) {
 		t.Fatal(fmt.Printf("TestAnotherEncrypt bytes wrong. expect=%d found=%d", expect, res))
 	}
 }
+
+/*
+ osx test
+ */
+ func TestOSXEncrypt(t *testing.T) {
+	challenge := []byte{94, 248, 116, 139, 0, 127, 216, 249}
+	expect := []byte{
+		253, 201, 156, 168, 136, 124, 25, 116,
+		159, 134, 99, 33, 192, 40, 123, 163,
+		159, 159, 88, 245, 191, 69, 57, 127,
+	}
+
+	res, e := Encrypt(challenge, "derpderp")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if bytes.Compare(res, expect) != 0 {
+		t.Fatal(fmt.Printf("TestAnotherEncrypt bytes wrong. expect=%d found=%d", expect, res))
+	}
+ }
