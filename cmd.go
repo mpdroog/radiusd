@@ -10,7 +10,6 @@ import (
 	"radiusd/radius/mschapv1"
 	"radiusd/radius/vendor"
 	"net"
-	"crypto/md5"
 	"bytes"
 )
 
@@ -55,32 +54,10 @@ func auth(w io.Writer, req *radius.Packet) {
 			config.Log.Printf("PAP login user=%s", user)
 		}
 	} else if _, isChap := req.Attrs[radius.CHAPPassword]; isChap {
-		raw := req.Attrs[radius.CHAPPassword].Value
-		/*
-	  The Response Value is the one-way hash calculated over a stream of
-      octets consisting of the Identifier, followed by (concatenated
-      with) the "secret", followed by (concatenated with) the Challenge
-      Value.  The length of the Response Value depends upon the hash
-      algorithm used (16 octets for MD5).
-      https://tools.ietf.org/html/rfc1994
-		*/
 		challenge := req.Attrs[radius.CHAPChallenge].Value
-		hash := req.Attrs[radius.CHAPPassword].Value[1:]
+		hash := req.Attrs[radius.CHAPPassword].Value
 
-		// MD5(ID+secret+challenge)
-		h := md5.New()
-		h.Write(raw[0:1]) // first byte is ID
-		h.Write([]byte(limits.Pass))
-		h.Write([]byte(challenge))
-		calc := h.Sum(nil)
-
-		if bytes.Compare(hash, calc) != 0 {
-			if config.Verbose {
-				config.Log.Printf(
-					"CHAP user=%s mismatch expect=%x, received=%x",
-					user, calc, hash,
-				)
-			}
+		if !radius.CHAPMatch(limits.Pass, hash, challenge) {
 			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
 			return
 		}
