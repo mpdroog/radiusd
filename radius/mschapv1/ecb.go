@@ -13,7 +13,7 @@
 
 // See NIST SP 800-38A, pp 08-09
 
-package mschap
+package mschapv1
 
 import (
 	"crypto/cipher"
@@ -35,7 +35,7 @@ type ecbEncrypter ecb
 
 // NewECBEncrypter returns a BlockMode which encrypts in electronic code book
 // mode, using the given Block.
-func NewECBEncrypter(b cipher.Block) cipher.BlockMode {
+func newECBEncrypter(b cipher.Block) cipher.BlockMode {
 	return (*ecbEncrypter)(newECB(b))
 }
 
@@ -59,7 +59,7 @@ type ecbDecrypter ecb
 
 // NewECBDecrypter returns a BlockMode which decrypts in electronic code book
 // mode, using the given Block.
-func NewECBDecrypter(b cipher.Block) cipher.BlockMode {
+func newECBDecrypter(b cipher.Block) cipher.BlockMode {
 	return (*ecbDecrypter)(newECB(b))
 }
 

@@ -1,9 +1,8 @@
 // mschap impl heavily inspired by https://github.com/FreeRADIUS/freeradius-server (C-code)
 // Function naming same as https://tools.ietf.org/html/rfc2433 Appendix A - Pseudocode
-package mschap
+package mschapv1
 
 import (
-	"errors"
 	"crypto/des"
 	"unicode/utf16"
 	"golang.org/x/crypto/md4"
@@ -11,7 +10,7 @@ import (
 )
 
 // Convert pass to UCS-2 (UTF-16)
-func NTPassword(pass string) []byte {
+func ntPassword(pass string) []byte {
 	buf := utf16.Encode([]rune(pass))
 	enc := make([]byte, 8)
 	for i := 0; i < 4; i++ {
@@ -22,7 +21,7 @@ func NTPassword(pass string) []byte {
 }
 
 // MD4 hash the UCS-2 value
-func NTPasswordHash(r []byte) []byte {
+func ntPasswordHash(r []byte) []byte {
 	d := md4.New()
 	d.Write(r)
 	return d.Sum(nil)
@@ -48,7 +47,7 @@ func strToKey(str []byte) []byte {
 }
 
 // Create Response for comparison
-func NtChallengeResponse(challenge []byte, passHash []byte) ([]byte, error) {
+func ntChallengeResponse(challenge []byte, passHash []byte) ([]byte, error) {
 	// Pass is already encoded (NTPasswordHash)
 	// ChallengeResponse
 	res := make([]byte, 24)
@@ -65,10 +64,7 @@ func NtChallengeResponse(challenge []byte, passHash []byte) ([]byte, error) {
 		if e != nil {
 			return nil, e
 		}
-		if len(res) < des.BlockSize {
-			return nil, errors.New("DES Key too short?")
-		}
-		mode := NewECBEncrypter(block)
+		mode := newECBEncrypter(block)
 		mode.CryptBlocks(res, challenge)
 	}
 
@@ -78,10 +74,7 @@ func NtChallengeResponse(challenge []byte, passHash []byte) ([]byte, error) {
 		if e != nil {
 			return nil, e
 		}
-		if len(res) < des.BlockSize {
-			return nil, errors.New("DES Key too short?")
-		}
-		mode := NewECBEncrypter(block)
+		mode := newECBEncrypter(block)
 		mode.CryptBlocks(res[8:], challenge)
 	}
 
@@ -91,11 +84,13 @@ func NtChallengeResponse(challenge []byte, passHash []byte) ([]byte, error) {
 		if e != nil {
 			return nil, e
 		}
-		if len(res) < des.BlockSize {
-			return nil, errors.New("DES Key too short?")
-		}
-		mode := NewECBEncrypter(block)
+		mode := newECBEncrypter(block)
 		mode.CryptBlocks(res[16:], challenge)
 	}
 	return res, nil
+}
+
+func Encrypt(challenge []byte, pass string) ([]byte, error) {
+	passHash := ntPasswordHash(ntPassword(pass))
+	return ntChallengeResponse(challenge, passHash)
 }
