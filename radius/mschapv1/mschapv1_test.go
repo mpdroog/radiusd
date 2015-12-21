@@ -20,7 +20,6 @@ func TestNTPassword(t *testing.T) {
 }
 
 func TestNTPasswordHash(t *testing.T) {
-	// 16oct
 	val := ntPasswordHash(ntPassword("MyPw"))
 	expect := []byte{
 		0xFC, 0x15, 0x6A, 0xF7, 0xED, 0xCD, 0x6C,

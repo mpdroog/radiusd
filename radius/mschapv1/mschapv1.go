@@ -12,8 +12,8 @@ import (
 // Convert pass to UCS-2 (UTF-16)
 func ntPassword(pass string) []byte {
 	buf := utf16.Encode([]rune(pass))
-	enc := make([]byte, 8)
-	for i := 0; i < 4; i++ {
+	enc := make([]byte, len(pass)*2)
+	for i := 0; i < len(pass); i++ {
 		pos := 2*i
 		binary.LittleEndian.PutUint16(enc[pos: pos+2], buf[i])
 	}
