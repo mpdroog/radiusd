@@ -7,6 +7,8 @@ import (
 	"radiusd/model"
 	"radiusd/queue"
 	"radiusd/radius"
+	"radiusd/radius/mschapv1"
+	"radiusd/radius/vendor"
 	"net"
 	"crypto/md5"
 	"bytes"
@@ -52,7 +54,6 @@ func auth(w io.Writer, req *radius.Packet) {
 		if config.Verbose {
 			config.Log.Printf("PAP login user=%s", user)
 		}
-
 	} else if _, isChap := req.Attrs[radius.CHAPPassword]; isChap {
 		raw := req.Attrs[radius.CHAPPassword].Value
 		/*
@@ -86,10 +87,96 @@ func auth(w io.Writer, req *radius.Packet) {
 		if config.Verbose {
 			config.Log.Printf("CHAP login user=%s", user)
 		}
+	} else {
+		// Search for MSCHAP attrs
+		attrs := make(map[vendor.AttributeType]radius.Attr)
+		for _, attr := range req.AllAttrs {
+			if radius.AttributeType(attr.Type) == radius.VendorSpecific {
+				hdr := radius.VendorSpecificHeader(attr.Value)
+				if hdr.VendorId == vendor.Microsoft {
+					attrs[ vendor.AttributeType(hdr.VendorType) ] = attr
+				}
+			}
+		}
+
+		if len(attrs) > 0 && len(attrs) != 2 {
+			w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAP: Missing attrs? MS-CHAP-Challenge/MS-CHAP-Response"))
+			return
+		} else if len(attrs) == 2 {
+			// Collect our data
+			challenge := mschapv1.DecodeChallenge(attrs[vendor.MSCHAPChallenge].Value).Value
+			if _, isV1 := attrs[vendor.MSCHAPResponse]; isV1 {
+				// MSCHAPv1
+				res := mschapv1.DecodeResponse(attrs[vendor.MSCHAPResponse].Value)
+				if res.Flags == 0 {
+					// If it is zero, the NT-Response field MUST be ignored and
+					// the LM-Response field used.
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: LM-Response not supported."))
+					return
+				}
+
+				// Check for correctness
+				calc, e := mschapv1.Encrypt(challenge, limits.Pass)
+				if e != nil {
+					config.Log.Printf("MSCHAPv1: " + e.Error())
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: Server-side processing error"))
+					return
+				}
+
+				if bytes.Compare(res.NTResponse, calc) != 0 {
+					if config.Verbose {
+						config.Log.Printf(
+							"MSCHAPv1 user=%s mismatch expect=%x, received=%x",
+							user, calc, res.NTResponse,
+						)
+					}
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
+					return
+				}
+				if config.Verbose {
+					config.Log.Printf("CHAP login user=%s", user)
+				}
+
+			} else if _, isV2 := attrs[vendor.MSCHAP2Response]; isV2 {
+				// MSCHAPv2
+			} else {
+				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAP: Response1/2 not found"))
+				return
+			}
+		}
+
+	/*} else if _, maybeMSChap := req.Attrs[radius.VendorSpecific]; maybeMSChap {
+		conf := radius.DecodeMSCHAPv1(req.Attrs[radius.VendorSpecific].Value)
+		if conf.VendorId == radius.MicrosoftVendor {
+			if conf.VendorType == 1 {
+				// MSCHAPV1
+				config.Log.Printf("CHAP raw=%+v", conf)
+				if conf.Flags == 0 {
+					// If it is zero, the NT-Response field MUST be ignored and
+      				// the LM-Response field used.
+      				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: LM-Response not supported."))
+					return
+				}
+			} else if conf.VendorType == 25 {
+				// MSCHAPv2
+				conf := radius.DecodeMSCHAPv2(req.Attrs[radius.VendorSpecific].Value)
+				if conf.Flags != 0 {
+					// The Flags field is one octet in length.  It is reserved for future
+					// use and MUST be zero.
+      				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Flags not 0 as expected."))
+					return					
+				}
+			}
+
+			//
+		}
+
+		config.Log.Printf("auth.begin Unsupported auth-type (not MS-CHAP as expected)")
+		return
 
 	} else {
 		config.Log.Printf("auth.begin Unsupported auth-type (neither PAP/CHAP)")
-		return
+		return*/
 	}
 
 	conns, e := model.Conns(user)
@@ -114,9 +201,9 @@ func auth(w io.Writer, req *radius.Packet) {
 			// 	MT-Rate-Limit = MikrotikRateLimit
 			reply = append(reply, radius.VendorAttr{
 				Type: radius.VendorSpecific,
-				VendorId: radius.MikrotikVendor,
+				VendorId: vendor.Mikrotik,
 				Values: []radius.VendorAttrString{radius.VendorAttrString{
-					Type: radius.MikrotikRateLimit,
+					Type: vendor.MikrotikRateLimit,
 					Value: []byte(*limits.Ratelimit),
 				}},
 			}.Encode())
@@ -126,12 +213,12 @@ func auth(w io.Writer, req *radius.Packet) {
 			// MS-Secondary-DNS-Server
 			reply = append(reply, radius.VendorAttr{
 				Type: radius.VendorSpecific,
-				VendorId: radius.MicrosoftVendor,
+				VendorId: vendor.Microsoft,
 				Values: []radius.VendorAttrString{radius.VendorAttrString{
-					Type: radius.MSPrimaryDNSServer,
+					Type: vendor.MSPrimaryDNSServer,
 					Value: net.ParseIP(*limits.DnsOne).To4(),
 				}, radius.VendorAttrString{
-					Type: radius.MSSecondaryDNSServer,
+					Type: vendor.MSSecondaryDNSServer,
 					Value: net.ParseIP(*limits.DnsTwo).To4(),
 				}},
 			}.Encode())

@@ -70,7 +70,9 @@ func ValidateAuthRequest(p *Packet) string {
 	// User-Password and a CHAP-Password.
 	if _, there := p.Attrs[UserPassword]; !there {
 		if _, there := p.Attrs[CHAPPassword]; !there {
-			return "UserPassword/CHAP-Password missing"
+			if _, there := p.Attrs[VendorSpecific]; !there {
+				return "UserPassword/CHAP-Password/VendorSpeficic missing"
+			}
 		}
 	}
 
