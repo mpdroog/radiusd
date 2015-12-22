@@ -1,6 +1,6 @@
 // mschap impl heavily inspired by https://github.com/FreeRADIUS/freeradius-server (C-code)
 // Function naming same as https://tools.ietf.org/html/rfc2433 Appendix A - Pseudocode
-package mschapv1
+package mschap
 
 import (
 	"crypto/des"

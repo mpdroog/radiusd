@@ -7,7 +7,7 @@ import (
 	"radiusd/model"
 	"radiusd/queue"
 	"radiusd/radius"
-	"radiusd/radius/mschapv1"
+	"radiusd/radius/mschap"
 	"radiusd/radius/vendor"
 	"net"
 	"bytes"
@@ -81,10 +81,10 @@ func auth(w io.Writer, req *radius.Packet) {
 			return
 		} else if len(attrs) == 2 {
 			// Collect our data
-			challenge := mschapv1.DecodeChallenge(attrs[vendor.MSCHAPChallenge].Value).Value
+			challenge := mschap.DecodeChallenge(attrs[vendor.MSCHAPChallenge].Value).Value
 			if _, isV1 := attrs[vendor.MSCHAPResponse]; isV1 {
 				// MSCHAPv1
-				res := mschapv1.DecodeResponse(attrs[vendor.MSCHAPResponse].Value)
+				res := mschap.DecodeResponse(attrs[vendor.MSCHAPResponse].Value)
 				if res.Flags == 0 {
 					// If it is zero, the NT-Response field MUST be ignored and
 					// the LM-Response field used.
@@ -97,7 +97,7 @@ func auth(w io.Writer, req *radius.Packet) {
 				}
 
 				// Check for correctness
-				calc, e := mschapv1.Encryptv1(challenge, limits.Pass)
+				calc, e := mschap.Encryptv1(challenge, limits.Pass)
 				if e != nil {
 					config.Log.Printf("MSCHAPv1: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: Server-side processing error"))
@@ -120,12 +120,12 @@ func auth(w io.Writer, req *radius.Packet) {
 
 			} else if _, isV2 := attrs[vendor.MSCHAP2Response]; isV2 {
 				// MSCHAPv2
-				res := mschapv1.DecodeResponse2(attrs[vendor.MSCHAP2Response].Value)
+				res := mschap.DecodeResponse2(attrs[vendor.MSCHAP2Response].Value)
 				if res.Flags != 0 {
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Flags should be set to 0"))
 					return
 				}
-				calc, e := mschapv1.Encryptv2(challenge, res.PeerChallenge, user, limits.Pass)
+				calc, e := mschap.Encryptv2(challenge, res.PeerChallenge, user, limits.Pass)
 				if e != nil {
 					config.Log.Printf("MSCHAPv2: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Server-side processing error"))

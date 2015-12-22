@@ -1,4 +1,4 @@
-package mschapv1
+package mschap
 
 import (
    "crypto/sha1"

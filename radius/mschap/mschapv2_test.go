@@ -1,5 +1,5 @@
 // tests for mschapv2 from https://tools.ietf.org/html/rfc2759#section-9.2
-package mschapv1
+package mschap
 
 import (
 	"fmt"

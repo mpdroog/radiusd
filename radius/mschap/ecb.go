@@ -13,7 +13,7 @@
 
 // See NIST SP 800-38A, pp 08-09
 
-package mschapv1
+package mschap
 
 import (
 	"crypto/cipher"
