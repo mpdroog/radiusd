@@ -29,7 +29,7 @@ func DecodeResponse(b []byte) ResponseAttr {
 		Ident: b[6],
 		Flags: b[7],
 		LMResponse: b[8:32],
-		NTResponse: b[33:57],
+		NTResponse: b[32:],
 	}
 }
 
