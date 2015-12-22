@@ -13,6 +13,7 @@ Implemented RFCs:
 * CHAP https://tools.ietf.org/html/rfc1994
 * MSCHAP1+2 http://freeradius.org/rfc/rfc2548.html
 * MSCHAP1 https://tools.ietf.org/html/rfc2433
+* MSCHAP2 https://tools.ietf.org/html/rfc2759
 
 This daemon uses MariaDB/MySQL to store it's data and the SQL-file can
 be found in the `/db` dir.

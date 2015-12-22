@@ -97,7 +97,7 @@ func auth(w io.Writer, req *radius.Packet) {
 				}
 
 				// Check for correctness
-				calc, e := mschapv1.Encrypt(challenge, limits.Pass)
+				calc, e := mschapv1.Encryptv1(challenge, limits.Pass)
 				if e != nil {
 					config.Log.Printf("MSCHAPv1: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: Server-side processing error"))
@@ -115,11 +115,36 @@ func auth(w io.Writer, req *radius.Packet) {
 					return
 				}
 				if config.Verbose {
-					config.Log.Printf("CHAP login user=%s", user)
+					config.Log.Printf("MSCHAPv1 login user=%s", user)
 				}
 
 			} else if _, isV2 := attrs[vendor.MSCHAP2Response]; isV2 {
 				// MSCHAPv2
+				res := mschapv1.DecodeResponse2(attrs[vendor.MSCHAP2Response].Value)
+				if res.Flags != 0 {
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Flags should be set to 0"))
+					return
+				}
+				calc, e := mschapv1.Encryptv2(challenge, res.PeerChallenge, user, limits.Pass)
+				if e != nil {
+					config.Log.Printf("MSCHAPv2: " + e.Error())
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Server-side processing error"))
+					return
+				}
+				if bytes.Compare(res.Response, calc) != 0 {
+					if config.Verbose {
+						config.Log.Printf(
+							"MSCHAPv2 user=%s mismatch expect=%x, received=%x",
+							user, calc, res.Response,
+						)
+					}
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
+					return
+				}
+				if config.Verbose {
+					config.Log.Printf("MSCHAPv2 login user=%s", user)
+				}
+
 			} else {
 				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAP: Response1/2 not found"))
 				return
