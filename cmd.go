@@ -100,7 +100,7 @@ func auth(w io.Writer, req *radius.Packet) {
 				}
 
 				// Check for correctness
-				calc, e := mschap.Encryptv1(challenge, limits.Pass)
+				calc, pwHash, e := mschap.Encryptv1(challenge, limits.Pass)
 				if e != nil {
 					config.Log.Printf("MSCHAPv1: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: Server-side processing error"))
@@ -120,6 +120,27 @@ func auth(w io.Writer, req *radius.Packet) {
 				if config.Verbose {
 					config.Log.Printf("MSCHAPv1 login user=%s", user)
 				}
+				/* 1 Encryption-Allowed, 2 Encryption-Required */
+				reply = append(reply, radius.PubAttr{
+					Type: vendor.MSMPPEEncryptionPolicy,
+					Value: []byte{0x0, 0x0, 0x0, 0x1},
+				})
+				/* encryption types, allow RC4[40/128bit] */
+				reply = append(reply, radius.PubAttr{
+					Type: vendor.MSMPPEEncryptionTypes,
+					Value: []byte{0x0, 0x0, 0x0, 0x6},
+				})
+				// The NT-Key sub-field is sixteen octets in length and contains the
+      			// first sixteen octets of the hashed Windows NT password. 
+				reply = append(reply, radius.PubAttr{
+					Type: vendor.MSCHAPMPPEKeys,
+					Value: append([]byte{
+						/*LMKey*/
+						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+						/*NTKey*/
+						pwHash...
+					),
+				})
 
 			} else if _, isV2 := attrs[vendor.MSCHAP2Response]; isV2 {
 				// MSCHAPv2

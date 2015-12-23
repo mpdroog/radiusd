@@ -90,7 +90,8 @@ func ntChallengeResponse(challenge []byte, passHash []byte) ([]byte, error) {
 	return res, nil
 }
 
-func Encryptv1(challenge []byte, pass string) ([]byte, error) {
+func Encryptv1(challenge []byte, pass string) ([]byte, []byte, error) {
 	passHash := ntPasswordHash(ntPassword(pass))
-	return ntChallengeResponse(challenge, passHash)
+	res, e := ntChallengeResponse(challenge, passHash)
+	return res, passHash, e
 }
