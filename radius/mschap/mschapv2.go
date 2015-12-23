@@ -22,11 +22,15 @@ func challengeHash(peerChallenge []byte, authChallenge []byte, userName []byte) 
    return enc.Sum(nil)[:8]
 }
 
-// GenerateNTResponse
-func Encryptv2(authenticatorChallenge []byte, peerChallenge []byte, username string, pass string) ([]byte, error) {
+// GenerateNTResponse, GenerateAuthenticatorResponse
+func Encryptv2(authenticatorChallenge []byte, peerChallenge []byte, username string, pass string) ([]byte, string, error) {
 	challenge := challengeHash(peerChallenge, authenticatorChallenge, []byte(username))
    passHash := ntPasswordHash(ntPassword(pass))
-   return ntChallengeResponse(challenge, passHash)
+   res, e := ntChallengeResponse(challenge, passHash)
+   if e != nil {
+      return nil, "", e
+   }
+   return res, authResponse(pass, res, peerChallenge, authenticatorChallenge, username), nil
 }
 
 // HashNtPasswordHash
@@ -38,7 +42,7 @@ func hashNtPasswordHash(hash []byte) []byte {
 }
 
 // GenerateAuthenticatorResponse
-func AuthResponse(pass string, ntResponse []byte, peerChallenge []byte, authChallenge []byte, userName string) string {
+func authResponse(pass string, ntResponse []byte, peerChallenge []byte, authChallenge []byte, userName string) string {
    var x []byte
    {
       magic := []byte{

@@ -31,6 +31,7 @@ func auth(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("auth.begin e=%s", e)
 		return
 	}
+	reply := []radius.PubAttr{}
 
 	user := string(req.Attrs[radius.UserName].Value)
 	raw := req.Attrs[radius.UserPassword].Value
@@ -64,6 +65,10 @@ func auth(w io.Writer, req *radius.Packet) {
 		if config.Verbose {
 			config.Log.Printf("CHAP login user=%s", user)
 		}
+		reply = append(reply, radius.PubAttr{
+			Type: radius.CHAPPassword,
+			Value: []byte("Hello"),
+		})
 	} else {
 		// Search for MSCHAP attrs
 		attrs := make(map[vendor.AttributeType]radius.Attr)
@@ -117,6 +122,10 @@ func auth(w io.Writer, req *radius.Packet) {
 				if config.Verbose {
 					config.Log.Printf("MSCHAPv1 login user=%s", user)
 				}
+				reply = append(reply, radius.PubAttr{
+					Type: radius.CHAPPassword,
+					Value: []byte("Hello"),
+				})
 
 			} else if _, isV2 := attrs[vendor.MSCHAP2Response]; isV2 {
 				// MSCHAPv2
@@ -125,7 +134,7 @@ func auth(w io.Writer, req *radius.Packet) {
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Flags should be set to 0"))
 					return
 				}
-				calc, e := mschap.Encryptv2(challenge, res.PeerChallenge, user, limits.Pass)
+				calc, repl, e := mschap.Encryptv2(challenge, res.PeerChallenge, user, limits.Pass)
 				if e != nil {
 					config.Log.Printf("MSCHAPv2: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Server-side processing error"))
@@ -144,45 +153,16 @@ func auth(w io.Writer, req *radius.Packet) {
 				if config.Verbose {
 					config.Log.Printf("MSCHAPv2 login user=%s", user)
 				}
+				reply = append(reply, radius.PubAttr{
+					Type: radius.CHAPPassword,
+					Value: []byte(repl + " M=Hello"),
+				})
 
 			} else {
 				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAP: Response1/2 not found"))
 				return
 			}
 		}
-
-	/*} else if _, maybeMSChap := req.Attrs[radius.VendorSpecific]; maybeMSChap {
-		conf := radius.DecodeMSCHAPv1(req.Attrs[radius.VendorSpecific].Value)
-		if conf.VendorId == radius.MicrosoftVendor {
-			if conf.VendorType == 1 {
-				// MSCHAPV1
-				config.Log.Printf("CHAP raw=%+v", conf)
-				if conf.Flags == 0 {
-					// If it is zero, the NT-Response field MUST be ignored and
-      				// the LM-Response field used.
-      				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: LM-Response not supported."))
-					return
-				}
-			} else if conf.VendorType == 25 {
-				// MSCHAPv2
-				conf := radius.DecodeMSCHAPv2(req.Attrs[radius.VendorSpecific].Value)
-				if conf.Flags != 0 {
-					// The Flags field is one octet in length.  It is reserved for future
-					// use and MUST be zero.
-      				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Flags not 0 as expected."))
-					return					
-				}
-			}
-
-			//
-		}
-
-		config.Log.Printf("auth.begin Unsupported auth-type (not MS-CHAP as expected)")
-		return
-
-	} else {
-		config.Log.Printf("auth.begin Unsupported auth-type (neither PAP/CHAP)")
-		return*/
 	}
 
 	conns, e := model.Conns(user)
@@ -196,7 +176,6 @@ func auth(w io.Writer, req *radius.Packet) {
 	}
 
 	if limits.Ok {
-		reply := []radius.PubAttr{}
 		if limits.DedicatedIP != nil {
 			reply = append(reply, radius.PubAttr{
 				Type: radius.FramedIPAddress,

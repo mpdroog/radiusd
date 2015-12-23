@@ -61,7 +61,7 @@ func TestEncryptMSCHAP2(t *testing.T) {
 		0x21, 0x40, 0x23, 0x24, 0x25, 0x5E, 0x26, 0x2A,
 		0x28, 0x29, 0x5F, 0x2B, 0x3A, 0x33, 0x7C, 0x7E,
 	}
-	res, e := Encryptv2(authChallenge, peerChallenge, "User", "clientPass")
+	res, _, e := Encryptv2(authChallenge, peerChallenge, "User", "clientPass")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -110,7 +110,7 @@ func TestAuthResponse2(t *testing.T) {
 	}
 
 	expect := "S=407A5589115FD0D6209F510FE9C04566932CDA56"
-	res := AuthResponse("clientPass", ntResponse, peerChallenge, authChallenge, "User")
+	res := authResponse("clientPass", ntResponse, peerChallenge, authChallenge, "User")
 	if res != expect {
 		t.Fatal(fmt.Printf("TestAuthResponse2 res wrong. expect=%s found=%s", expect, res))
 	}
