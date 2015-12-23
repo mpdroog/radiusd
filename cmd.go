@@ -130,16 +130,13 @@ func auth(w io.Writer, req *radius.Packet) {
 					Type: vendor.MSMPPEEncryptionTypes,
 					Value: []byte{0x0, 0x0, 0x0, 0x6},
 				})
-				// The NT-Key sub-field is sixteen octets in length and contains the
-      			// first sixteen octets of the hashed Windows NT password. 
+
+				raw := append([]byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, pwHash...,)
+				raw = append(raw, []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
+
 				reply = append(reply, radius.PubAttr{
 					Type: vendor.MSCHAPMPPEKeys,
-					Value: append([]byte{
-						/*LMKey*/
-						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
-						/*NTKey*/
-						pwHash...
-					),
+					Value: raw,
 				})
 
 			} else if _, isV2 := attrs[vendor.MSCHAP2Response]; isV2 {
