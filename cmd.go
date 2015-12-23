@@ -58,6 +58,8 @@ func auth(w io.Writer, req *radius.Packet) {
 		challenge := req.Attrs[radius.CHAPChallenge].Value
 		hash := req.Attrs[radius.CHAPPassword].Value
 
+		// TODO: No challenge then use Request Authenticator
+
 		if !radius.CHAPMatch(limits.Pass, hash, challenge) {
 			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
 			return
@@ -65,10 +67,6 @@ func auth(w io.Writer, req *radius.Packet) {
 		if config.Verbose {
 			config.Log.Printf("CHAP login user=%s", user)
 		}
-		reply = append(reply, radius.PubAttr{
-			Type: radius.CHAPPassword,
-			Value: []byte("Hello"),
-		})
 	} else {
 		// Search for MSCHAP attrs
 		attrs := make(map[vendor.AttributeType]radius.Attr)
@@ -122,10 +120,6 @@ func auth(w io.Writer, req *radius.Packet) {
 				if config.Verbose {
 					config.Log.Printf("MSCHAPv1 login user=%s", user)
 				}
-				reply = append(reply, radius.PubAttr{
-					Type: radius.CHAPPassword,
-					Value: []byte("Hello"),
-				})
 
 			} else if _, isV2 := attrs[vendor.MSCHAP2Response]; isV2 {
 				// MSCHAPv2
@@ -154,8 +148,8 @@ func auth(w io.Writer, req *radius.Packet) {
 					config.Log.Printf("MSCHAPv2 login user=%s", user)
 				}
 				reply = append(reply, radius.PubAttr{
-					Type: radius.CHAPPassword,
-					Value: []byte(repl + " M=Hello"),
+					Type: vendor.MSCHAP2Success,
+					Value: append([]byte{byte(res.Ident)}, []byte(repl)...),
 				})
 
 			} else {
