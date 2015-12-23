@@ -120,24 +120,29 @@ func auth(w io.Writer, req *radius.Packet) {
 				if config.Verbose {
 					config.Log.Printf("MSCHAPv1 login user=%s", user)
 				}
-				/* 1 Encryption-Allowed, 2 Encryption-Required */
-				reply = append(reply, radius.PubAttr{
-					Type: vendor.MSMPPEEncryptionPolicy,
-					Value: []byte{0x0, 0x0, 0x0, 0x1},
-				})
-				/* encryption types, allow RC4[40/128bit] */
-				reply = append(reply, radius.PubAttr{
-					Type: vendor.MSMPPEEncryptionTypes,
-					Value: []byte{0x0, 0x0, 0x0, 0x6},
-				})
 
-				raw := append([]byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, pwHash...,)
-				raw = append(raw, []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
+				mppe := append([]byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, pwHash...,)
+				mppe = append(mppe, []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
 
-				reply = append(reply, radius.PubAttr{
-					Type: vendor.MSCHAPMPPEKeys,
-					Value: raw,
-				})
+				reply = append(reply, radius.VendorAttr{
+					Type: radius.VendorSpecific,
+					VendorId: vendor.Microsoft,
+					/* 1 Encryption-Allowed, 2 Encryption-Required */
+					Values: []radius.VendorAttrString{radius.VendorAttrString{
+						Type: vendor.MSMPPEEncryptionPolicy,
+						Value: []byte{0x0, 0x0, 0x0, 0x1},
+					},
+					/* encryption types, allow RC4[40/128bit] */
+					radius.VendorAttrString{
+						Type: vendor.MSMPPEEncryptionTypes,
+						Value: []byte{0x0, 0x0, 0x0, 0x6},
+					},
+					/* mppe - encryption negotation key */
+					radius.VendorAttrString{
+						Type: vendor.MSCHAPMPPEKeys,
+						Value: mppe,
+					}},
+				}.Encode())
 
 			} else if _, isV2 := attrs[vendor.MSCHAP2Response]; isV2 {
 				// MSCHAPv2
