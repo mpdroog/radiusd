@@ -165,10 +165,14 @@ func auth(w io.Writer, req *radius.Packet) {
 				if config.Verbose {
 					config.Log.Printf("MSCHAPv2 login user=%s", user)
 				}
-				reply = append(reply, radius.PubAttr{
-					Type: vendor.MSCHAP2Success,
-					Value: append([]byte{byte(res.Ident)}, []byte(repl)...),
-				})
+				reply = append(reply, radius.VendorAttr{
+					Type: radius.VendorSpecific,
+					VendorId: vendor.Microsoft,
+					Values: []radius.VendorAttrString{radius.VendorAttrString{
+						Type: vendor.MSCHAP2Success,
+						Value: append([]byte{byte(res.Ident)}, []byte(repl)...),
+					}},
+				}.Encode())
 
 			} else {
 				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAP: Response1/2 not found"))
