@@ -50,3 +50,28 @@ func lmPasswordHash(pass string) ([]byte, error) {
 
 	return res, nil
 }
+
+func mppev1(pass string, passHash []byte) ([]byte, error) {
+	var res []byte
+
+	lm, e := lmPasswordHash(pass)
+	if e != nil {
+		return nil, e
+	}
+	lm = lm[:8]
+
+	res = append(res, lm...)
+	/*
+	 *	According to RFC 2548 we
+	 *	should send NT hash.  But in
+	 *	practice it doesn't work.
+	 *	Instead, we should send nthashhash
+	 *	This is an error in RFC 2548.
+	 * https://github.com/FreeRADIUS/freeradius-server/blob/5ea87f156381174ea24340db9b450d4eca8189c9/src/modules/rlm_mschap/rlm_mschap.c#L1956
+	 */
+	res = append(res, hashNtPasswordHash(passHash)[:16]...)
+	// padding
+	res = append(res, []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
+
+	return res, nil
+}

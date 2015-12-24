@@ -101,24 +101,6 @@ func Encryptv1(challenge []byte, pass string) ([]byte, []byte, error) {
 		return nil, nil, e
 	}
 
-	var mppe []byte
-	{
-		lm, e := lmPasswordHash(pass)
-		if e != nil {
-			return nil, nil, e
-		}
-		mppe = append(mppe, lm...)
-		/*
-		 *	According to RFC 2548 we
-		 *	should send NT hash.  But in
-		 *	practice it doesn't work.
-		 *	Instead, we should send nthashhash
-		 *	This is an error in RFC 2548.
-		 * https://github.com/FreeRADIUS/freeradius-server/blob/5ea87f156381174ea24340db9b450d4eca8189c9/src/modules/rlm_mschap/rlm_mschap.c#L1956
-		 */
-		mppe = append(mppe, hashNtPasswordHash(passHash)...)
-		mppe = append(mppe, []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
-	}
-
-	return res, mppe, nil
+	mppe, e := mppev1(pass, passHash)
+	return res, mppe, e
 }
