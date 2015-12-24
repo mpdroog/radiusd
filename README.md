@@ -36,6 +36,11 @@ radclient is part of the freeradius project
 brew install freeradius-server
 ```
 
+Production?
+==============
+No, still testing.
+> RadiusD is only being tested against Mikrotik their RouterOS.
+
 Used resources
 ==============
 - http://lost-and-found-narihiro.blogspot.nl/2014/04/freeradius-2112-configure-accounting.html
