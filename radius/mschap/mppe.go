@@ -1,4 +1,4 @@
-// MPPE to support Microsoft Point-to-Point Encryption Protocol
+// MPPE to support encryption with MSCHAPv1
 package mschap
 
 import (
@@ -18,7 +18,7 @@ func desHash(clear []byte) ([]byte, error) {
 	return res, nil
 }
 
-// Implement LmPasswordHash for 40-bit MPPE
+// Implement LmPasswordHash for MPPE with MSCHAPv1
 func lmPasswordHash(pass string) ([]byte, error) {
 	pass = strings.ToUpper(pass) // enforce uppercase
 	ZUCPass := make([]byte, 14)  // zero UpperCasePass
