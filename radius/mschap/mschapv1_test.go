@@ -39,7 +39,7 @@ func TestEncryptMSCHAP1(t *testing.T) {
 		0xA4, 0xC3, 0x51, 0xAB, 0x40, 0x9A, 0x3D, 0x61,
 	}
 
-	res, e := Encryptv1(challenge, "MyPw")
+	res, _, e := Encryptv1(challenge, "MyPw")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -61,7 +61,7 @@ func TestRadclientEncrypt(t *testing.T) {
 		0xfd, 0x01, 0x85, 0x31, 0x73, 0xc8, 0x21, 0x4e,
 	}
 
-	res, e := Encryptv1(challenge, "derpderp")
+	res, _, e := Encryptv1(challenge, "derpderp")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -81,7 +81,7 @@ func TestRadclientEncrypt(t *testing.T) {
 		159, 159, 88, 245, 191, 69, 57, 127,
 	}
 
-	res, e := Encryptv1(challenge, "derpderp")
+	res, _, e := Encryptv1(challenge, "derpderp")
 	if e != nil {
 		t.Fatal(e)
 	}

@@ -90,8 +90,27 @@ func ntChallengeResponse(challenge []byte, passHash []byte) ([]byte, error) {
 	return res, nil
 }
 
+// Encrypt MSCHAPv1 challenge+pass and return challengeresponse+MPPE
+// OUT1 = ChallengeResponse is a computed value you can compare with the user
+// supplied value.
+// OUT2 = MPPE is to support 40bit encryption
 func Encryptv1(challenge []byte, pass string) ([]byte, []byte, error) {
 	passHash := ntPasswordHash(ntPassword(pass))
 	res, e := ntChallengeResponse(challenge, passHash)
-	return res, passHash, e
+	if e != nil {
+		return nil, nil, e
+	}
+
+	var mppe []byte
+	{
+		lm, e := lmPasswordHash(pass)
+		if e != nil {
+			return nil, nil, e
+		}
+		mppe = append(mppe, lm...)
+		mppe = append(mppe, passHash...)
+		mppe = append(mppe, []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
+	}
+
+	return res, mppe, nil
 }

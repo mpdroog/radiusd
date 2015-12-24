@@ -100,7 +100,7 @@ func auth(w io.Writer, req *radius.Packet) {
 				}
 
 				// Check for correctness
-				calc, pwHash, e := mschap.Encryptv1(challenge, limits.Pass)
+				calc, mppe, e := mschap.Encryptv1(challenge, limits.Pass)
 				if e != nil {
 					config.Log.Printf("MSCHAPv1: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: Server-side processing error"))
@@ -120,9 +120,6 @@ func auth(w io.Writer, req *radius.Packet) {
 				if config.Verbose {
 					config.Log.Printf("MSCHAPv1 login user=%s", user)
 				}
-
-				mppe := append([]byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, pwHash...,)
-				mppe = append(mppe, []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}...)
 
 				reply = append(reply, radius.VendorAttr{
 					Type: radius.VendorSpecific,

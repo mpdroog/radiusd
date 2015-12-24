@@ -14,6 +14,7 @@ Implemented RFCs:
 * MSCHAP1+2 http://freeradius.org/rfc/rfc2548.html
 * MSCHAP1 https://tools.ietf.org/html/rfc2433
 * MSCHAP2 https://tools.ietf.org/html/rfc2759
+* MPPE (RC4 encryption) https://www.ietf.org/rfc/rfc3079.txt
 
 This daemon uses MariaDB/MySQL to store it's data and the SQL-file can
 be found in the `/db` dir.
