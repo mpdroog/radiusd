@@ -119,25 +119,30 @@ func xor(a []byte, b []byte) []byte {
 }
 
 /*
-     Construct a plaintext version of the String field by concate-
-     nating the Key-Length and Key sub-fields.  If necessary, pad
-     the resulting string until its length (in octets) is an even
-     multiple of 16.  It is recommended that zero octets (0x00) be
-     used for padding.  Call this plaintext P.
+   Construct a plaintext version of the String field by concate-
+   nating the Key-Length and Key sub-fields.  If necessary, pad
+   the resulting string until its length (in octets) is an even
+   multiple of 16.  It is recommended that zero octets (0x00) be
+   used for padding.  Call this plaintext P.
 
-     Call the shared secret S, the pseudo-random 128-bit Request
-     Authenticator (from the corresponding Access-Request packet) R,
-     and the contents of the Salt field A.  Break P into 16 octet
-     chunks p(1), p(2)...p(i), where i = len(P)/16.  Call the
-     ciphertext blocks c(1), c(2)...c(i) and the final ciphertext C.
-     Intermediate values b(1), b(2)...c(i) are required.  Encryption
-     is performed in the following manner ('+' indicates
-     concatenation):
+   Call the shared secret S, the pseudo-random 128-bit Request
+   Authenticator (from the corresponding Access-Request packet) R,
+   and the contents of the Salt field A.  Break P into 16 octet
+   chunks p(1), p(2)...p(i), where i = len(P)/16.  Call the
+   ciphertext blocks c(1), c(2)...c(i) and the final ciphertext C.
+   Intermediate values b(1), b(2)...c(i) are required.  Encryption
+   is performed in the following manner ('+' indicates
+   concatenation)
+
+   http://security.stackexchange.com/questions/35683/mppe-send-and-receive-key-derivation-from-ms-chapv2
+   https://github.com/FreeRADIUS/freeradius-server/blob/5ea87f156381174ea24340db9b450d4eca8189c9/src/lib/radius.c#L623
 */
-// http://security.stackexchange.com/questions/35683/mppe-send-and-receive-key-derivation-from-ms-chapv2
 func tunnelPasswd(secret string, pass string, reqAuth []byte) ([]byte, uint32) {
    r := rand.New(rand.NewSource(time.Now().UnixNano()))
+   // concatenating the Key-Length and Key sub-fields.
    P := append([]byte{byte(len(pass))}, []byte(pass)...)
+   // If necessary, pad the resulting string until its length (in octets) is an even
+   // multiple of 16.
    P = multipleOf(P, 16)
    salt := r.Uint32()
 
@@ -145,8 +150,9 @@ func tunnelPasswd(secret string, pass string, reqAuth []byte) ([]byte, uint32) {
    var c [][]byte
    var C []byte
 
-   // Iterate over 16 octets
+   // Break P into 16 octet chunks where i = len(P)/16
    for i := 0; i < len(P)/16; i++ {
+      p := P[i*16 : (i+1)*16]
       if i == 0 {
          // b(1) = MD5(S + R + A)
          {
@@ -158,8 +164,7 @@ func tunnelPasswd(secret string, pass string, reqAuth []byte) ([]byte, uint32) {
          }
          // c(1) = p(1) xor b(1)
          {
-            px := P[i*16 : (i+1)*16]
-            c = append(c, xor(px, b[0]))
+            c = append(c, xor(p, b[0]))
          }
          // C = c(1)
          C = c[i]
@@ -173,42 +178,11 @@ func tunnelPasswd(secret string, pass string, reqAuth []byte) ([]byte, uint32) {
          }
          // c(i) = p(i) xor b(i)
          {
-            px := P[i*16 : (i+1)*16]
-            c = append(c, xor(px, b[0]))
+            c = append(c, xor(p, b[0]))
          }
          // C = C + c(i)
          C = append(C, c[i]...)
       }
    }
    return append([]byte{byte(salt)}, C...), salt
-
-// pseude code based on freeradius:
-/*   r := rand.New(rand.NewSource(time.Now().UnixNano()))
-   var out []byte
-   // TODO: No binary.Encode?
-   out = append(out, byte((0x80 | 0x0f << 3) | (rand.Uint32() & 0x07)))
-   out = append(out, byte(r.Uint32()))
-   out = append(out, byte(len(pass)))
-
-   hash := md5.New()
-   hash.Write(secret)
-
-   // Remember for n=1
-   old = hash
-   hash.Write(vector) // vector??
-   hash.Write(out)
-
-   for n := 0; n < 251; n++ {
-      if n > 0 {
-         hash = old
-         hash.Write(pass[n:])
-      }
-      digest := hash.Sum(nil)
-      for i := 0; i < derp; i++ {
-         out[i + 2 + n] ^= digest[i]
-      }
-   }
-
-   //
-   return out*/
 }
