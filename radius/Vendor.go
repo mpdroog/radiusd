@@ -22,7 +22,7 @@ type VendorHeader struct {
 }
 
 // Convert VendorAttr to generic Attr
-func (t VendorAttr) Encode() PubAttr {
+func (t VendorAttr) Encode() AttrEncoder {
 	val := make([]byte, 4)
 	binary.BigEndian.PutUint32(val, t.VendorId)
 
@@ -38,10 +38,7 @@ func (t VendorAttr) Encode() PubAttr {
 		val = append(val, b...)
 	}
 
-	return PubAttr{
-		Type: t.Type,
-		Value: val,
-	}
+	return NewAttr(t.Type, val, 0)
 }
 
 func VendorSpecificHeader(b []byte) VendorHeader {

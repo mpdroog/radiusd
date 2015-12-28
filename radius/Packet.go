@@ -17,25 +17,13 @@ import (
 	"fmt"
 )
 
-type Attr struct {
-	Type   AttributeType
-	Length uint8
-	Value  []byte
-}
-
-// Wrapper around Attr
-type PubAttr struct {
-	Type  AttributeType
-	Value []byte
-}
-
 type Packet struct {
 	secret     string // shared secret
 	Code       PacketCode
 	Identifier uint8
 	Len        uint16
 	Auth       []byte // Request Authenticator
-	AllAttrs   []Attr
+	Attrs   []AttrEncoder
 }
 
 func (p *Packet) Secret() string {
@@ -43,17 +31,17 @@ func (p *Packet) Secret() string {
 }
 // Get first packet by key
 func (p *Packet) Attr(key AttributeType) []byte {
-	for _, a := range p.AllAttrs {
-		if a.Type == key {
-			return a.Value
+	for _, a := range p.Attrs {
+		if a.Type() == key {
+			return a.Bytes()
 		}
 	}
 	panic(fmt.Sprintf("No such key %s", key.String()))
 }
 // If requested attribute exists
 func (p *Packet) HasAttr(key AttributeType) bool {
-	for _, a := range p.AllAttrs {
-		if a.Type == key {
+	for _, a := range p.Attrs {
+		if a.Type() == key {
 			return true
 		}
 	}
@@ -69,7 +57,6 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 	p.Len = binary.BigEndian.Uint16(buf[2:4])
 
 	p.Auth = buf[4:20] // 16 octets
-	//p.Attrs = make(map[AttributeType]Attr)
 
 	// attrs
 	i := 20
@@ -78,15 +65,11 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 			break
 		}
 
-		attr := Attr{
-			Type:   AttributeType(buf[i]),
-			Length: buf[i+1],
-		}
+		length := uint8(buf[i+1])
 		b := i + 2
-		e := b + int(attr.Length) - 2 // Length is including type+Length fields
-		attr.Value = buf[b:e]
-		p.AllAttrs = append(p.AllAttrs, attr)
-		//p.Attrs[AttributeType(attr.Type)] = attr
+		e := b + int(length) - 2 // Length is including type+Length fields
+		attr := NewAttr(AttributeType(buf[i]), buf[b:e], length)
+		p.Attrs = append(p.Attrs, attr)
 
 		i = e
 	}
@@ -111,14 +94,14 @@ func encode(p *Packet) []byte {
 	written := 20
 
 	bb := b[20:]
-	for _, attr := range p.AllAttrs {
-		aLen := len(attr.Value) + 2 // add type+len fields
+	for _, attr := range p.Attrs {
+		aLen := len(attr.Bytes()) + 2 // add type+len fields
 		if aLen > 255 || aLen < 2 {
 			panic("Value too big for attr")
 		}
-		bb[0] = uint8(attr.Type)
+		bb[0] = uint8(attr.Type())
 		bb[1] = uint8(aLen)
-		copy(bb[2:], attr.Value)
+		copy(bb[2:], attr.Bytes())
 
 		written += aLen
 		bb = bb[aLen:]
@@ -152,7 +135,7 @@ func validate(p *Packet) bool {
 }
 
 // Create response packet
-func (p *Packet) Response(code PacketCode, attrs []PubAttr) []byte {
+func (p *Packet) Response(code PacketCode, attrs []AttrEncoder) []byte {
 	n := &Packet{
 		Code:       code,
 		Identifier: p.Identifier,
@@ -162,12 +145,8 @@ func (p *Packet) Response(code PacketCode, attrs []PubAttr) []byte {
 	}
 
 	for _, attr := range attrs {
-		msg := Attr{
-			Type:  attr.Type,
-			Value: attr.Value,
-		}
-		msg.Length = uint8(2 + len(msg.Value))
-		n.AllAttrs = append(n.AllAttrs, msg)
+		msg := NewAttr(attr.Type(), attr.Bytes(), uint8(2 + len(attr.Bytes())))
+		n.Attrs = append(n.Attrs, msg)
 	}
 
 	// Encode

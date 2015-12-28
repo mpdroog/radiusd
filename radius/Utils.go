@@ -44,8 +44,8 @@ func DecryptPassword(raw []byte, p *Packet) string {
 // Create a simple response.
 func DefaultPacket(p *Packet, code PacketCode, msg string) []byte {
 	return p.Response(
-		code, []PubAttr{
-			PubAttr{Type: ReplyMessage, Value: []byte(msg)},
+		code, []AttrEncoder{
+			NewAttr(ReplyMessage, []byte(msg), 0),
 		},
 	)
 }
@@ -95,16 +95,16 @@ func ValidateAuthRequest(p *Packet) string {
 func ValidateAcctRequest(p *Packet) string {
 	// the following attributes MUST NOT be present in an Accounting-
 	// Request:  User-Password, CHAP-Password, Reply-Message, State.
-	if !p.HasAttr(UserPassword) {
+	if p.HasAttr(UserPassword) {
 		return "UserPassword not allowed"
 	}
-	if !p.HasAttr(CHAPPassword) {
+	if p.HasAttr(CHAPPassword) {
 		return "CHAPPassword not allowed"
 	}
-	if !p.HasAttr(ReplyMessage) {
+	if p.HasAttr(ReplyMessage) {
 		return "ReplyMessage not allowed"
 	}
-	if !p.HasAttr(State) {
+	if p.HasAttr(State) {
 		return "State not allowed"
 	}
 

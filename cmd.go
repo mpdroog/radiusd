@@ -31,7 +31,7 @@ func auth(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("auth.begin e=%s", e)
 		return
 	}
-	reply := []radius.PubAttr{}
+	reply := []radius.AttrEncoder{}
 
 	user := string(req.Attr(radius.UserName))
 	limits, e := model.Auth(user)
@@ -68,10 +68,10 @@ func auth(w io.Writer, req *radius.Packet) {
 		}
 	} else {
 		// Search for MSCHAP attrs
-		attrs := make(map[vendor.AttributeType]radius.Attr)
-		for _, attr := range req.AllAttrs {
-			if radius.AttributeType(attr.Type) == radius.VendorSpecific {
-				hdr := radius.VendorSpecificHeader(attr.Value)
+		attrs := make(map[vendor.AttributeType]radius.AttrEncoder)
+		for _, attr := range req.Attrs {
+			if radius.AttributeType(attr.Type()) == radius.VendorSpecific {
+				hdr := radius.VendorSpecificHeader(attr.Bytes())
 				if hdr.VendorId == vendor.Microsoft {
 					attrs[ vendor.AttributeType(hdr.VendorType) ] = attr
 				}
@@ -83,10 +83,10 @@ func auth(w io.Writer, req *radius.Packet) {
 			return
 		} else if len(attrs) == 2 {
 			// Collect our data
-			challenge := mschap.DecodeChallenge(attrs[vendor.MSCHAPChallenge].Value).Value
+			challenge := mschap.DecodeChallenge(attrs[vendor.MSCHAPChallenge].Bytes()).Value
 			if _, isV1 := attrs[vendor.MSCHAPResponse]; isV1 {
 				// MSCHAPv1
-				res := mschap.DecodeResponse(attrs[vendor.MSCHAPResponse].Value)
+				res := mschap.DecodeResponse(attrs[vendor.MSCHAPResponse].Bytes())
 				if res.Flags == 0 {
 					// If it is zero, the NT-Response field MUST be ignored and
 					// the LM-Response field used.
@@ -148,7 +148,7 @@ func auth(w io.Writer, req *radius.Packet) {
 
 			} else if _, isV2 := attrs[vendor.MSCHAP2Response]; isV2 {
 				// MSCHAPv2
-				res := mschap.DecodeResponse2(attrs[vendor.MSCHAP2Response].Value)
+				res := mschap.DecodeResponse2(attrs[vendor.MSCHAP2Response].Bytes())
 				if res.Flags != 0 {
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Flags should be set to 0"))
 					return
@@ -226,10 +226,11 @@ func auth(w io.Writer, req *radius.Packet) {
 
 	if limits.Ok {
 		if limits.DedicatedIP != nil {
-			reply = append(reply, radius.PubAttr{
-				Type: radius.FramedIPAddress,
-				Value: net.ParseIP(*limits.DedicatedIP).To4(),
-			})
+			reply = append(reply, radius.NewAttr(
+				radius.FramedIPAddress,
+				net.ParseIP(*limits.DedicatedIP).To4(),
+				0,
+			))
 		}
 		if limits.Ratelimit != nil {
 			// 	MT-Rate-Limit = MikrotikRateLimit
@@ -285,7 +286,7 @@ func acctBegin(w io.Writer, req *radius.Packet) {
 	if config.Verbose {
 		config.Log.Printf("acct.begin sess=%s for user=%s on nasIP=%s", sess, user, nasIp)
 	}
-	reply := []radius.PubAttr{}
+	reply := []radius.AttrEncoder{}
 	_, e := model.Limits(user)
 	if e != nil {
 		if e == model.ErrNoRows {
