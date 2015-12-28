@@ -18,7 +18,7 @@ import (
 )
 
 type Attr struct {
-	Type   uint8
+	Type   AttributeType
 	Length uint8
 	Value  []byte
 }
@@ -43,19 +43,17 @@ func (p *Packet) Secret() string {
 }
 // Get first packet by key
 func (p *Packet) Attr(key AttributeType) []byte {
-	k := uint8(key)
 	for _, a := range p.AllAttrs {
-		if a.Type == k {
+		if a.Type == key {
 			return a.Value
 		}
 	}
-	panic(fmt.Sprintf("No such key %+v", k))
+	panic(fmt.Sprintf("No such key %s", key.String()))
 }
 // If requested attribute exists
 func (p *Packet) HasAttr(key AttributeType) bool {
-	k := uint8(key)
 	for _, a := range p.AllAttrs {
-		if a.Type == k {
+		if a.Type == key {
 			return true
 		}
 	}
@@ -81,7 +79,7 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 		}
 
 		attr := Attr{
-			Type:   buf[i],
+			Type:   AttributeType(buf[i]),
 			Length: buf[i+1],
 		}
 		b := i + 2
@@ -94,6 +92,11 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 	}
 	if config.Debug {
 		config.Log.Printf("packet.decode: %+v", p)
+		/*logAttrs := "packet.decode:\n"
+		for _, attr := range p.AllAttrs {
+			logAttrs += fmt.Sprintf("\t%s\t\t%s", attr.String() + "\n"
+		}
+		config.Log.Printf(logAttrs)*/
 	}
 	return p, nil
 }
@@ -113,7 +116,7 @@ func encode(p *Packet) []byte {
 		if aLen > 255 || aLen < 2 {
 			panic("Value too big for attr")
 		}
-		bb[0] = attr.Type
+		bb[0] = uint8(attr.Type)
 		bb[1] = uint8(aLen)
 		copy(bb[2:], attr.Value)
 
@@ -124,7 +127,7 @@ func encode(p *Packet) []byte {
 	// Now set Len
 	binary.BigEndian.PutUint16(b[2:4], uint16(written))
 	if config.Debug {
-		config.Log.Printf("packet.encode: %+v", b[:written])
+		config.Log.Printf("packet.encode: %+v", p)
 	}
 	return b[:written]
 }
@@ -160,7 +163,7 @@ func (p *Packet) Response(code PacketCode, attrs []PubAttr) []byte {
 
 	for _, attr := range attrs {
 		msg := Attr{
-			Type:  uint8(attr.Type),
+			Type:  attr.Type,
 			Value: attr.Value,
 		}
 		msg.Length = uint8(2 + len(msg.Value))
