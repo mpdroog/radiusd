@@ -4,6 +4,7 @@ import (
 	"strconv"
 )
 
+//go:generate stringer -type=PacketCode
 type PacketCode uint8
 
 const (
