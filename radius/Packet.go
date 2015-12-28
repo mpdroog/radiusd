@@ -31,7 +31,7 @@ type PubAttr struct {
 
 type Packet struct {
 	secret     string // shared secret
-	Code       uint8
+	Code       PacketCode
 	Identifier uint8
 	Len        uint16
 	Auth       []byte // Request Authenticator
@@ -64,7 +64,7 @@ func (p *Packet) HasAttr(key AttributeType) bool {
 func decode(buf []byte, n int, secret string) (*Packet, error) {
 	p := &Packet{}
 	p.secret = secret
-	p.Code = buf[0]
+	p.Code = PacketCode(buf[0])
 	p.Identifier = buf[1]
 	p.Len = binary.BigEndian.Uint16(buf[2:4])
 
@@ -104,7 +104,7 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 // Encode packet into bytes
 func encode(p *Packet) []byte {
 	b := make([]byte, 1024)
-	b[0] = p.Code
+	b[0] = uint8(p.Code)
 	b[1] = p.Identifier
 	// Skip Len for now 2+3
 	copy(b[4:20], p.Auth)
@@ -154,7 +154,7 @@ func validate(p *Packet) bool {
 // Create response packet
 func (p *Packet) Response(code PacketCode, attrs []PubAttr) []byte {
 	n := &Packet{
-		Code:       uint8(code),
+		Code:       code,
 		Identifier: p.Identifier,
 		Auth:       p.Auth, // Set req auth
 		Len:        0,      // Set by Encode

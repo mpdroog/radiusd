@@ -1,9 +1,5 @@
 package radius
 
-import (
-	"strconv"
-)
-
 //go:generate stringer -type=PacketCode
 type PacketCode uint8
 
@@ -18,27 +14,3 @@ const (
 	StatusClient       PacketCode = 13 //(experimental)
 	Reserved           PacketCode = 255
 )
-
-func (p PacketCode) String() string {
-	switch p {
-	case AccessRequest:
-		return "AccessRequest"
-	case AccessAccept:
-		return "AccessAccept"
-	case AccessReject:
-		return "AccessReject"
-	case AccountingRequest:
-		return "AccountingRequest"
-	case AccountingResponse:
-		return "AccountingResponse"
-	case AccessChallenge:
-		return "AccessChallenge"
-	case StatusServer:
-		return "StatusServer"
-	case StatusClient:
-		return "StatusClient"
-	case Reserved:
-		return "Reserved"
-	}
-	return "unknown packet code " + strconv.Itoa(int(p))
-}
