@@ -97,8 +97,8 @@ func masterKeys(pass string, ntResponse []byte) ([]byte, []byte) {
 	masterKey := getMasterKey(hashHash, ntResponse)
 
    // TODO: 16 on highest encryption
-   sendKey := getAsymmetricStartKey(masterKey, 8, true, true)
-   recvKey := getAsymmetricStartKey(masterKey, 8, false, true)
+   sendKey := getAsymmetricStartKey(masterKey, 16, true, true)
+   recvKey := getAsymmetricStartKey(masterKey, 16, false, true)
    return sendKey, recvKey
 }
 
