@@ -14,6 +14,7 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"radiusd/config"
+	"fmt"
 )
 
 type Attr struct {
@@ -48,7 +49,7 @@ func (p *Packet) Attr(key AttributeType) []byte {
 			return a.Value
 		}
 	}
-	panic("No such key=")
+	panic(fmt.Sprintf("No such key %+v", k))
 }
 // If requested attribute exists
 func (p *Packet) HasAttr(key AttributeType) bool {
