@@ -1,5 +1,5 @@
 package radius
-
+//go:generate stringer -type=AttributeType
 type AttributeType uint8
 
 const (
