@@ -63,6 +63,9 @@ func Serve(conn *net.UDPConn, secret string, cidrs []string) error {
 			continue
 		}
 
+		if config.Debug {
+			config.Log.Printf("raw.recv: %+v", buf[:n])
+		}
 		p, e := decode(buf, n, secret)
 		if e != nil {
 			// TODO: Silently ignore decode?
@@ -83,6 +86,9 @@ func Serve(conn *net.UDPConn, secret string, cidrs []string) error {
 		handle, ok := handlers[key]
 		if ok {
 			handle(readBuf, p)
+			if config.Debug {
+				config.Log.Printf("raw.send: %+v", readBuf.Bytes())
+			}
 			if len(readBuf.Bytes()) != 0 {
 				// Only send a packet if we got anything
 				if _, e := conn.WriteTo(readBuf.Bytes(), client); e != nil {

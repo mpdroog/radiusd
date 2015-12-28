@@ -73,7 +73,7 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 
 		i = e
 	}
-	if config.Debug {
+	if config.Verbose {
 		config.Log.Printf("packet.receive: " + debug(p))
 	}
 	return p, nil
@@ -104,7 +104,7 @@ func encode(p *Packet) []byte {
 
 	// Now set Len
 	binary.BigEndian.PutUint16(b[2:4], uint16(written))
-	if config.Debug {
+	if config.Verbose {
 		config.Log.Printf("packet.send: " + debug(p))
 	}
 	return b[:written]
