@@ -34,7 +34,6 @@ func auth(w io.Writer, req *radius.Packet) {
 	reply := []radius.PubAttr{}
 
 	user := string(req.Attr(radius.UserName))
-	raw := req.Attr(radius.UserPassword)
 	limits, e := model.Auth(user)
 	if e != nil {
 		config.Log.Printf("auth.begin e=" + e.Error())
@@ -46,7 +45,7 @@ func auth(w io.Writer, req *radius.Packet) {
 	}
 
 	if req.HasAttr(radius.UserPassword) {
-		pass := radius.DecryptPassword(raw, req)
+		pass := radius.DecryptPassword(req.Attr(radius.UserPassword), req)
 		if pass != limits.Pass {
 			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
 			return
