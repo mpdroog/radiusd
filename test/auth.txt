@@ -1,5 +1,5 @@
-User-Name="herp"
-User-Password="derp"
+User-Name="vpn293b50c891377b94c904b42396e45fd99d"
+User-Password="derpderp"
 NAS-IP-Address="127.0.0.1"
 NAS-Identifier="1"
 NAS-Port="33"
