@@ -33,7 +33,7 @@ func TestMppev1(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}
 
-	res, e := mppev1(pass, passHash)
+	res, e := Mppev1(pass, passHash)
 	if e != nil {
 		t.Fatal(e)
 	}

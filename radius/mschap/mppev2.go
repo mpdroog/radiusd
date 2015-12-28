@@ -137,10 +137,10 @@ func xor(a []byte, b []byte) []byte {
    http://security.stackexchange.com/questions/35683/mppe-send-and-receive-key-derivation-from-ms-chapv2
    https://github.com/FreeRADIUS/freeradius-server/blob/5ea87f156381174ea24340db9b450d4eca8189c9/src/lib/radius.c#L623
 */
-func tunnelPasswd(secret string, pass string, reqAuth []byte) ([]byte, uint32) {
+func tunnelPass(secret string, key []byte, reqAuth []byte) ([]byte, uint32) {
    r := rand.New(rand.NewSource(time.Now().UnixNano()))
    // concatenating the Key-Length and Key sub-fields.
-   P := append([]byte{byte(len(pass))}, []byte(pass)...)
+   P := append([]byte{byte(len(key))}, key...)
    // If necessary, pad the resulting string until its length (in octets) is an even
    // multiple of 16.
    P = multipleOf(P, 16)
@@ -185,4 +185,12 @@ func tunnelPasswd(secret string, pass string, reqAuth []byte) ([]byte, uint32) {
       }
    }
    return append([]byte{byte(salt)}, C...), salt
+}
+
+func Mmpev2(secret string, pass string, reqAuth []byte, ntResponse []byte) ([]byte, []byte) {
+   send, recv := masterKeys(pass, ntResponse)
+   sendEnc, _ := tunnelPass(secret, send, reqAuth)
+   recvEnc, _ := tunnelPass(secret, recv, reqAuth)
+
+   return sendEnc, recvEnc
 }

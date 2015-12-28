@@ -100,10 +100,16 @@ func auth(w io.Writer, req *radius.Packet) {
 				}
 
 				// Check for correctness
-				calc, mppe, e := mschap.Encryptv1(challenge, limits.Pass)
+				calc, e := mschap.Encryptv1(challenge, limits.Pass)
 				if e != nil {
 					config.Log.Printf("MSCHAPv1: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: Server-side processing error"))
+					return
+				}
+				mppe, e := mschap.Mppev1(limits.Pass)
+				if e != nil {
+					config.Log.Printf("MPPEv1: " + e.Error())
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MPPEv1: Server-side processing error"))
 					return
 				}
 
@@ -148,17 +154,20 @@ func auth(w io.Writer, req *radius.Packet) {
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Flags should be set to 0"))
 					return
 				}
-				calc, repl, e := mschap.Encryptv2(challenge, res.PeerChallenge, user, limits.Pass)
+				enc, e := mschap.Encryptv2(challenge, res.PeerChallenge, user, limits.Pass)
 				if e != nil {
 					config.Log.Printf("MSCHAPv2: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Server-side processing error"))
 					return
 				}
-				if bytes.Compare(res.Response, calc) != 0 {
+				// Mmpev2(secret string, pass string, reqAuth []byte, ntResponse []byte) ([]byte, []byte)
+				send, recv := mschap.Mmpev2(req.Secret(), limits.Pass, req.Auth, enc.ChallengeResponse)
+
+				if bytes.Compare(res.Response, enc.ChallengeResponse) != 0 {
 					if config.Verbose {
 						config.Log.Printf(
 							"MSCHAPv2 user=%s mismatch expect=%x, received=%x",
-							user, calc, res.Response,
+							user, enc.ChallengeResponse, res.Response,
 						)
 					}
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
@@ -170,10 +179,33 @@ func auth(w io.Writer, req *radius.Packet) {
 				reply = append(reply, radius.VendorAttr{
 					Type: radius.VendorSpecific,
 					VendorId: vendor.Microsoft,
-					Values: []radius.VendorAttrString{radius.VendorAttrString{
-						Type: vendor.MSCHAP2Success,
-						Value: append([]byte{byte(res.Ident)}, []byte(repl)...),
-					}},
+					Values: []radius.VendorAttrString{
+						/* 1 Encryption-Allowed, 2 Encryption-Required */
+						radius.VendorAttrString{
+							Type: vendor.MSMPPEEncryptionPolicy,
+							Value: []byte{0x0, 0x0, 0x0, 0x1},
+						},
+						/* encryption types, allow RC4[40/128bit] */
+						radius.VendorAttrString{
+							Type: vendor.MSMPPEEncryptionTypes,
+							Value: []byte{0x0, 0x0, 0x0, 0x6},
+						},
+						/* success challenge */
+						radius.VendorAttrString{
+							Type: vendor.MSCHAP2Success,
+							Value: append([]byte{byte(res.Ident)}, []byte(enc.AuthenticatorResponse)...),
+						},
+						/* Send-Key */
+						radius.VendorAttrString{
+							Type: vendor.MSMPPESendKey,
+							Value: send,
+						},
+						/* Recv-Key */
+						radius.VendorAttrString{
+							Type: vendor.MSMPPERecvKey,
+							Value: recv,
+						},
+					},
 				}.Encode())
 
 			} else {

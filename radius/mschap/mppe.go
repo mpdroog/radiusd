@@ -51,8 +51,9 @@ func lmPasswordHash(pass string) ([]byte, error) {
 	return res, nil
 }
 
-func mppev1(pass string, passHash []byte) ([]byte, error) {
+func Mppev1(pass string) ([]byte, error) {
 	var res []byte
+	passHash := ntPasswordHash(ntPassword(pass))
 
 	lm, e := lmPasswordHash(pass)
 	if e != nil {

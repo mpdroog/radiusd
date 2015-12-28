@@ -13,6 +13,11 @@ import (
    "strings"
 )
 
+type Res struct {
+   ChallengeResponse []byte
+   AuthenticatorResponse string
+}
+
 // SHA1 of all challenges + username
 func challengeHash(peerChallenge []byte, authChallenge []byte, userName []byte) []byte {
    enc := sha1.New()
@@ -23,14 +28,22 @@ func challengeHash(peerChallenge []byte, authChallenge []byte, userName []byte) 
 }
 
 // GenerateNTResponse, GenerateAuthenticatorResponse
-func Encryptv2(authenticatorChallenge []byte, peerChallenge []byte, username string, pass string) ([]byte, string, error) {
+func Encryptv2(authenticatorChallenge []byte, peerChallenge []byte, username string, pass string) (*Res, error) {
+   var (
+      out Res
+      e error
+   )
+
 	challenge := challengeHash(peerChallenge, authenticatorChallenge, []byte(username))
    passHash := ntPasswordHash(ntPassword(pass))
-   res, e := ntChallengeResponse(challenge, passHash)
+
+   out.ChallengeResponse, e = ntChallengeResponse(challenge, passHash)
    if e != nil {
-      return nil, "", e
+      return nil, e
    }
-   return res, authResponse(pass, res, peerChallenge, authenticatorChallenge, username), nil
+   out.AuthenticatorResponse = authResponse(pass, out.ChallengeResponse, peerChallenge, authenticatorChallenge, username)
+
+   return &out, nil
 }
 
 // HashNtPasswordHash

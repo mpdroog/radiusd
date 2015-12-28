@@ -38,6 +38,10 @@ type Packet struct {
 	AllAttrs   []Attr
 }
 
+func (p *Packet) Secret() string {
+	return p.secret
+}
+
 // Decode bytes into packet
 func decode(buf []byte, n int, secret string) (*Packet, error) {
 	p := &Packet{}
