@@ -7,9 +7,9 @@ const (
 	MSCHAP2Response AttributeType = 25
 	MSCHAP2Success = 26
 	MSCHAPChallenge AttributeType = 11
-	MSCHAPMPPEKeys = 12
+	MSCHAPMPPEKeys AttributeType = 12
 	MSMPPESendKey AttributeType = 16
-	MSMPPERecvKey = 17
+	MSMPPERecvKey AttributeType = 17
 	MSPrimaryDNSServer AttributeType = 28
 	MSSecondaryDNSServer AttributeType = 29
 
