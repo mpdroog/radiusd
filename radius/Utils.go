@@ -52,25 +52,25 @@ func DefaultPacket(p *Packet, code PacketCode, msg string) []byte {
 
 func ValidateAuthRequest(p *Packet) string {
 	// An Access-Request SHOULD contain a User-Name attribute.
-	if _, there := p.Attrs[UserName]; !there {
+	if !p.HasAttr(UserName) {
 		return "UserName missing"
 	}
 
 	// It MUST contain either a NAS-IP-Address attribute or a NAS-Identifier
 	// attribute (or both).
-	if _, there := p.Attrs[NASIPAddress]; !there {
+	if !p.HasAttr(NASIPAddress) {
 		return "NasIPAddress missing"
 	}
-	if _, there := p.Attrs[NASIdentifier]; !there {
+	if !p.HasAttr(NASIdentifier) {
 		return "NasIdentifier missing"
 	}
 
 	// An Access-Request MUST contain either a User-Password or a CHAP-
 	// Password or a State.  An Access-Request MUST NOT contain both a
 	// User-Password and a CHAP-Password.
-	if _, there := p.Attrs[UserPassword]; !there {
-		if _, there := p.Attrs[CHAPPassword]; !there {
-			if _, there := p.Attrs[VendorSpecific]; !there {
+	if !p.HasAttr(UserPassword) {
+		if !p.HasAttr(CHAPPassword) {
+			if !p.HasAttr(VendorSpecific) {
 				return "UserPassword/CHAP-Password/VendorSpeficic missing"
 			}
 		}
@@ -80,10 +80,10 @@ func ValidateAuthRequest(p *Packet) string {
 	// attribute or both unless the type of access being requested does
 	// not involve a port or the NAS does not distinguish among its
 	// ports.
-	if _, there := p.Attrs[NASPort]; !there {
+	if !p.HasAttr(NASPort) {
 		return "NASPort missing"
 	}
-	if _, there := p.Attrs[NASPortType]; !there {
+	if !p.HasAttr(NASPortType) {
 		return "NASPortType missing"
 	}
 
@@ -95,35 +95,35 @@ func ValidateAuthRequest(p *Packet) string {
 func ValidateAcctRequest(p *Packet) string {
 	// the following attributes MUST NOT be present in an Accounting-
 	// Request:  User-Password, CHAP-Password, Reply-Message, State.
-	if _, there := p.Attrs[UserPassword]; there {
+	if !p.HasAttr(UserPassword) {
 		return "UserPassword not allowed"
 	}
-	if _, there := p.Attrs[CHAPPassword]; there {
+	if !p.HasAttr(CHAPPassword) {
 		return "CHAPPassword not allowed"
 	}
-	if _, there := p.Attrs[ReplyMessage]; there {
+	if !p.HasAttr(ReplyMessage) {
 		return "ReplyMessage not allowed"
 	}
-	if _, there := p.Attrs[State]; there {
+	if !p.HasAttr(State) {
 		return "State not allowed"
 	}
 
 	// Either NAS-IP-Address or NAS-Identifier MUST be present in a
 	// RADIUS Accounting-Request.
-	if _, there := p.Attrs[NASIPAddress]; !there {
+	if !p.HasAttr(NASIPAddress) {
 		return "NASIPAddress missing"
 	}
-	if _, there := p.Attrs[NASIdentifier]; !there {
+	if !p.HasAttr(NASIdentifier) {
 		return "NASIdentifier missing"
 	}
 
 	// It SHOULD contain a NAS-Port or NAS-
 	// Port-Type attribute or both unless the service does not involve a
 	// port or the NAS does not distinguish among its ports.
-	if _, there := p.Attrs[NASPort]; !there {
+	if !p.HasAttr(NASPort) {
 		return "NASPort missing"
 	}
-	if _, there := p.Attrs[NASPortType]; !there {
+	if !p.HasAttr(NASPortType) {
 		return "NASPortType missing"
 	}
 

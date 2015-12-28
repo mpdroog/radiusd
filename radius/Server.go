@@ -74,8 +74,9 @@ func Serve(conn *net.UDPConn, secret string, cidrs []string) error {
 		}
 
 		statusType := uint32(0)
-		if attr, ok := p.Attrs[AcctStatusType]; ok {
-			statusType = binary.BigEndian.Uint32(attr.Value)
+		if p.HasAttr(AcctStatusType) {
+			attr := p.Attr(AcctStatusType)
+			statusType = binary.BigEndian.Uint32(attr)
 		}
 
 		key := fmt.Sprintf("%d-%d", p.Code, statusType)

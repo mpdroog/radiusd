@@ -34,12 +34,31 @@ type Packet struct {
 	Identifier uint8
 	Len        uint16
 	Auth       []byte // Request Authenticator
-	Attrs      map[AttributeType]Attr
 	AllAttrs   []Attr
 }
 
 func (p *Packet) Secret() string {
 	return p.secret
+}
+// Get first packet by key
+func (p *Packet) Attr(key AttributeType) []byte {
+	k := uint8(key)
+	for _, a := range p.AllAttrs {
+		if a.Type == k {
+			return a.Value
+		}
+	}
+	panic("No such key=")
+}
+// If requested attribute exists
+func (p *Packet) HasAttr(key AttributeType) bool {
+	k := uint8(key)
+	for _, a := range p.AllAttrs {
+		if a.Type == k {
+			return true
+		}
+	}
+	return false
 }
 
 // Decode bytes into packet
@@ -51,7 +70,7 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 	p.Len = binary.BigEndian.Uint16(buf[2:4])
 
 	p.Auth = buf[4:20] // 16 octets
-	p.Attrs = make(map[AttributeType]Attr)
+	//p.Attrs = make(map[AttributeType]Attr)
 
 	// attrs
 	i := 20
@@ -68,7 +87,7 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 		e := b + int(attr.Length) - 2 // Length is including type+Length fields
 		attr.Value = buf[b:e]
 		p.AllAttrs = append(p.AllAttrs, attr)
-		p.Attrs[AttributeType(attr.Type)] = attr
+		//p.Attrs[AttributeType(attr.Type)] = attr
 
 		i = e
 	}
@@ -88,7 +107,7 @@ func encode(p *Packet) []byte {
 	written := 20
 
 	bb := b[20:]
-	for _, attr := range p.Attrs {
+	for _, attr := range p.AllAttrs {
 		aLen := len(attr.Value) + 2 // add type+len fields
 		if aLen > 255 || aLen < 2 {
 			panic("Value too big for attr")
@@ -111,7 +130,8 @@ func encode(p *Packet) []byte {
 
 // MessageAuthenticate if any
 func validate(p *Packet) bool {
-	if check, ok := p.Attrs[MessageAuthenticator]; ok {
+	if p.HasAttr(MessageAuthenticator) {
+		check := p.Attr(MessageAuthenticator)
 		h := md5.New()
 		temp := encode(p)
 		//h.Write(temp[0:4])
@@ -120,7 +140,7 @@ func validate(p *Packet) bool {
 		h.Write(temp)
 		h.Write([]byte(p.secret))
 
-		if !hmac.Equal(check.Value, h.Sum(nil)) {
+		if !hmac.Equal(check, h.Sum(nil)) {
 			return false
 		}
 	}
@@ -134,7 +154,7 @@ func (p *Packet) Response(code PacketCode, attrs []PubAttr) []byte {
 		Identifier: p.Identifier,
 		Auth:       p.Auth, // Set req auth
 		Len:        0,      // Set by Encode
-		Attrs:      make(map[AttributeType]Attr),
+		//Attrs:      make(map[AttributeType]Attr),
 	}
 
 	for _, attr := range attrs {
@@ -143,7 +163,7 @@ func (p *Packet) Response(code PacketCode, attrs []PubAttr) []byte {
 			Value: attr.Value,
 		}
 		msg.Length = uint8(2 + len(msg.Value))
-		n.Attrs[AttributeType(msg.Type)] = msg
+		n.AllAttrs = append(n.AllAttrs, msg)
 	}
 
 	// Encode

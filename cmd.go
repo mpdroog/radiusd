@@ -15,14 +15,14 @@ import (
 
 func createSess(req *radius.Packet) model.Session {
 	return model.Session{
-		BytesIn: radius.DecodeFour(req.Attrs[radius.AcctInputOctets].Value),
-		BytesOut: radius.DecodeFour(req.Attrs[radius.AcctOutputOctets].Value),
-		PacketsIn: radius.DecodeFour(req.Attrs[radius.AcctInputPackets].Value),
-		PacketsOut: radius.DecodeFour(req.Attrs[radius.AcctOutputPackets].Value),
-		SessionID: string(req.Attrs[radius.AcctSessionId].Value),
-		SessionTime: radius.DecodeFour(req.Attrs[radius.AcctSessionTime].Value),
-		User: string(req.Attrs[radius.UserName].Value),
-		NasIP: radius.DecodeIP(req.Attrs[radius.NASIPAddress].Value).String(),
+		BytesIn: radius.DecodeFour(req.Attr(radius.AcctInputOctets)),
+		BytesOut: radius.DecodeFour(req.Attr(radius.AcctOutputOctets)),
+		PacketsIn: radius.DecodeFour(req.Attr(radius.AcctInputPackets)),
+		PacketsOut: radius.DecodeFour(req.Attr(radius.AcctOutputPackets)),
+		SessionID: string(req.Attr(radius.AcctSessionId)),
+		SessionTime: radius.DecodeFour(req.Attr(radius.AcctSessionTime)),
+		User: string(req.Attr(radius.UserName)),
+		NasIP: radius.DecodeIP(req.Attr(radius.NASIPAddress)).String(),
 	}
 }
 
@@ -33,8 +33,8 @@ func auth(w io.Writer, req *radius.Packet) {
 	}
 	reply := []radius.PubAttr{}
 
-	user := string(req.Attrs[radius.UserName].Value)
-	raw := req.Attrs[radius.UserPassword].Value
+	user := string(req.Attr(radius.UserName))
+	raw := req.Attr(radius.UserPassword)
 	limits, e := model.Auth(user)
 	if e != nil {
 		config.Log.Printf("auth.begin e=" + e.Error())
@@ -45,7 +45,7 @@ func auth(w io.Writer, req *radius.Packet) {
 		return
 	}
 
-	if _, isPass := req.Attrs[radius.UserPassword]; isPass {
+	if req.HasAttr(radius.UserPassword) {
 		pass := radius.DecryptPassword(raw, req)
 		if pass != limits.Pass {
 			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
@@ -54,9 +54,9 @@ func auth(w io.Writer, req *radius.Packet) {
 		if config.Verbose {
 			config.Log.Printf("PAP login user=%s", user)
 		}
-	} else if _, isChap := req.Attrs[radius.CHAPPassword]; isChap {
-		challenge := req.Attrs[radius.CHAPChallenge].Value
-		hash := req.Attrs[radius.CHAPPassword].Value
+	} else if req.HasAttr(radius.CHAPPassword) {
+		challenge := req.Attr(radius.CHAPChallenge)
+		hash := req.Attr(radius.CHAPPassword)
 
 		// TODO: No challenge then use Request Authenticator
 
@@ -272,16 +272,16 @@ func acctBegin(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("WARN: acct.begin err=" + e)
 		return
 	}
-	if _, there := req.Attrs[radius.FramedIPAddress]; !there {
+	if !req.HasAttr(radius.FramedIPAddress) {
 		config.Log.Printf("WARN: acct.begin missing FramedIPAddress")
 		return
 	}
 
-	user := string(req.Attrs[radius.UserName].Value)
-	sess := string(req.Attrs[radius.AcctSessionId].Value)
-	nasIp := radius.DecodeIP(req.Attrs[radius.NASIPAddress].Value).String()
-	clientIp := string(req.Attrs[radius.CallingStationId].Value)
-	assignedIp := radius.DecodeIP(req.Attrs[radius.FramedIPAddress].Value).String()
+	user := string(req.Attr(radius.UserName))
+	sess := string(req.Attr(radius.AcctSessionId))
+	nasIp := radius.DecodeIP(req.Attr(radius.NASIPAddress)).String()
+	clientIp := string(req.Attr(radius.CallingStationId))
+	assignedIp := radius.DecodeIP(req.Attr(radius.FramedIPAddress)).String()
 
 	if config.Verbose {
 		config.Log.Printf("acct.begin sess=%s for user=%s on nasIP=%s", sess, user, nasIp)
@@ -339,16 +339,16 @@ func acctStop(w io.Writer, req *radius.Packet) {
 		config.Log.Printf("acct.stop e=" + e)
 		return
 	}
-	user := string(req.Attrs[radius.UserName].Value)
-	sess := string(req.Attrs[radius.AcctSessionId].Value)
-	nasIp := radius.DecodeIP(req.Attrs[radius.NASIPAddress].Value).String()
+	user := string(req.Attr(radius.UserName))
+	sess := string(req.Attr(radius.AcctSessionId))
+	nasIp := radius.DecodeIP(req.Attr(radius.NASIPAddress)).String()
 
-	sessTime := radius.DecodeFour(req.Attrs[radius.AcctSessionTime].Value)
-	octIn := radius.DecodeFour(req.Attrs[radius.AcctInputOctets].Value)
-	octOut := radius.DecodeFour(req.Attrs[radius.AcctOutputOctets].Value)
+	sessTime := radius.DecodeFour(req.Attr(radius.AcctSessionTime))
+	octIn := radius.DecodeFour(req.Attr(radius.AcctInputOctets))
+	octOut := radius.DecodeFour(req.Attr(radius.AcctOutputOctets))
 
-	packIn := radius.DecodeFour(req.Attrs[radius.AcctInputPackets].Value)
-	packOut := radius.DecodeFour(req.Attrs[radius.AcctOutputPackets].Value)
+	packIn := radius.DecodeFour(req.Attr(radius.AcctInputPackets))
+	packOut := radius.DecodeFour(req.Attr(radius.AcctOutputPackets))
 
 	if config.Verbose {
 		config.Log.Printf(
