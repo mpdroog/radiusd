@@ -25,7 +25,6 @@ func TestLmPasswordHash(t *testing.T) {
 
 func TestMppev1(t *testing.T) {
 	pass := "bob"
-	passHash := ntPasswordHash(ntPassword(pass))
 	expect := []byte{
 		0x43, 0x18, 0xb1, 0x76, 0xc3, 0xd8, 0xe3, 0xde,
 		0x9a, 0x93, 0x6f, 0xaf, 0x34, 0x43, 0x59, 0xa0,
@@ -33,12 +32,30 @@ func TestMppev1(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}
 
-	res, e := Mppev1(pass, passHash)
+	res, e := Mppev1(pass)
 	if e != nil {
 		t.Fatal(e)
 	}
 	if bytes.Compare(res, expect) != 0 {
 		t.Fatal(fmt.Printf("TestAnotherEncrypt bytes wrong. expect=%d found=%d", expect, res))
 	}
+}
 
+// Test with freeradius production output
+func TestMppev1Prod(t *testing.T) {
+	pass := "geheim"
+	expect := []byte{
+		0x19, 0x31, 0x30, 0xb6, 0x1a, 0x7f, 0x81, 0xc0,
+		0x74, 0x68, 0xbb, 0x14, 0xc8, 0xa1, 0xc0, 0xb2,
+		0x1e, 0x1c, 0x05, 0x81, 0xbb, 0xe8, 0xcf, 0x5a,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}
+
+	res, e := Mppev1(pass)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if bytes.Compare(res, expect) != 0 {
+		t.Fatal(fmt.Printf("TestAnotherEncrypt bytes wrong. expect=%d found=%d", expect, res))
+	}
 }

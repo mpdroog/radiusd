@@ -61,7 +61,7 @@ func TestEncryptMSCHAP2(t *testing.T) {
 		0x21, 0x40, 0x23, 0x24, 0x25, 0x5E, 0x26, 0x2A,
 		0x28, 0x29, 0x5F, 0x2B, 0x3A, 0x33, 0x7C, 0x7E,
 	}
-	res, authRes, e := Encryptv2(authChallenge, peerChallenge, "User", "clientPass")
+	res, e := Encryptv2(authChallenge, peerChallenge, "User", "clientPass")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -71,12 +71,12 @@ func TestEncryptMSCHAP2(t *testing.T) {
 		0xA0, 0x8F, 0xAA, 0x39, 0x81, 0xCD, 0x83, 0x54,
 		0x42, 0x33, 0x11, 0x4A, 0x3D, 0x85, 0xD6, 0xDF,
 	}
-	if bytes.Compare(res, expect) != 0 {
+	if bytes.Compare(res.ChallengeResponse, expect) != 0 {
 		t.Fatal(fmt.Printf("TestEncryptMSCHAP2 bytes wrong. expect=%d found=%d", expect, res))
 	}
 
-	if len(authRes) != 42 {
-		t.Fatal(fmt.Printf("TestEncryptMSCHAP2 authRes not 42-octets, found=%d", authRes))
+	if len(res.AuthenticatorResponse) != 42 {
+		t.Fatal(fmt.Printf("TestEncryptMSCHAP2 authRes not 42-octets, found=%d", res.AuthenticatorResponse))
 	}
 }
 
