@@ -133,12 +133,12 @@ func auth(w io.Writer, req *radius.Packet) {
 					Values: []radius.VendorAttrString{
 						radius.VendorAttrString{
 							Type: vendor.MSMPPEEncryptionPolicy,
-							Value: []byte{0x0, 0x0, 0x0, 0x1},
+							Value: []byte{0x0, 0x0, 0x0, 0x01},
 						},
 						/* encryption types, allow RC4[40/128bit] */
 						radius.VendorAttrString{
 							Type: vendor.MSMPPEEncryptionTypes,
-							Value: []byte{0x0, 0x0, 0x0, 0x6},
+							Value: []byte{0x0, 0x0, 0x0, 0x06},
 						},
 						/* mppe - encryption negotation key */
 						radius.VendorAttrString{
@@ -177,6 +177,7 @@ func auth(w io.Writer, req *radius.Packet) {
 				if config.Verbose {
 					config.Log.Printf("MSCHAPv2 login user=%s", user)
 				}
+				// TODO: Framed-Protocol = PPP, Framed-Compression = Van-Jacobson-TCP-IP
 				reply = append(reply, radius.VendorAttr{
 					Type: radius.VendorSpecific,
 					VendorId: vendor.Microsoft,
@@ -184,12 +185,12 @@ func auth(w io.Writer, req *radius.Packet) {
 						/* 1 Encryption-Allowed, 2 Encryption-Required */
 						radius.VendorAttrString{
 							Type: vendor.MSMPPEEncryptionPolicy,
-							Value: []byte{0x0, 0x0, 0x0, 0x1},
+							Value: []byte{0x0, 0x0, 0x0, 0x01},
 						},
 						/* encryption types, allow RC4[40/128bit] */
 						radius.VendorAttrString{
 							Type: vendor.MSMPPEEncryptionTypes,
-							Value: []byte{0x0, 0x0, 0x0, 0x6},
+							Value: []byte{0x0, 0x0, 0x0, 0x06},
 						},
 						/* success challenge */
 						radius.VendorAttrString{
