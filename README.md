@@ -1,11 +1,13 @@
 Radius Server.
 ===================
 Distributed Radius-server to do authentication+accounting.
-Motivation for writing this was the overengineerd 'freeradius' that
-was hard to patch. Adjusting this project to your needs should be
-a breeze!
 
-Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
+Some of the motivations for writing this server:
+* Wanted 5min interval graphs of traffic usage
+* FreeRADIUS felt overly complex/forced me into a SQL structure I didn't like
+* Loved a good challenge
+
+> Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
 Implemented RFCs:
 * auth https://tools.ietf.org/html/rfc2865
@@ -24,7 +26,7 @@ be found in the `/db` dir.
 Why is it distributed?
 ==============
 Because if MySQL is replicated this daemon shares it state
-with other radiusd-instances (as sessions are administrated in MySQL)
+with other radiusd-instances (as everything is administrated in MySQL)
 
 > To protect yourself against racing conditions between nodes
 > it's adviced to use a replication method like Galera Cluster.
@@ -43,6 +45,7 @@ No, still testing.
 
 Used resources
 ==============
+- https://github.com/FreeRADIUS/freeradius-server
 - http://lost-and-found-narihiro.blogspot.nl/2014/04/freeradius-2112-configure-accounting.html
 - https://github.com/bronze1man/radius
 - https://github.com/hoffoo/go-radius
