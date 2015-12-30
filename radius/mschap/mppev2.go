@@ -110,6 +110,9 @@ func multipleOf(val []byte, size int) []byte {
 }
 
 func xor(a []byte, b []byte) []byte {
+   if len(a) != len(b) {
+      panic("Should not get here")
+   }
    n := len(a)
    out := make([]byte, n)
    for i := 0; i < n; i++ {
@@ -183,8 +186,8 @@ func tunnelPass(secret string, key []byte, reqAuth []byte, lenPass int, salt []b
       }
    }
 
-   if len(C) != 32 {
-      panic("C not 32-bytes as expected")
+   if len(C) % 16 != 0 {
+      panic("Should not get here")
    }
 
    /*
