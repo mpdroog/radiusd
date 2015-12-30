@@ -165,7 +165,7 @@ func tunnelPass(secret string, key []byte, reqAuth []byte, salt []byte) ([]byte)
          }
          // c(1) = p(1) xor b(1)
          {
-            c = append(c, xor(p, b[0]))
+            c = append(c, xor(p, b[i]))
          }
          // C = c(1)
          C = c[i]
