@@ -137,14 +137,12 @@ func xor(a []byte, b []byte) []byte {
    http://security.stackexchange.com/questions/35683/mppe-send-and-receive-key-derivation-from-ms-chapv2
    https://github.com/FreeRADIUS/freeradius-server/blob/5ea87f156381174ea24340db9b450d4eca8189c9/src/lib/radius.c#L623
 */
-func tunnelPass(secret string, key []byte, reqAuth []byte) ([]byte, uint32) {
-   r := rand.New(rand.NewSource(time.Now().UnixNano()))
+func tunnelPass(secret string, key []byte, reqAuth []byte, lenPass int, salt []byte) ([]byte) {
    // concatenating the Key-Length and Key sub-fields.
    P := append([]byte{byte(len(key))}, key...)
    // If necessary, pad the resulting string until its length (in octets) is an even
    // multiple of 16.
    P = multipleOf(P, 16)
-   salt := r.Uint32()
 
    var b [][]byte
    var c [][]byte
@@ -159,7 +157,7 @@ func tunnelPass(secret string, key []byte, reqAuth []byte) ([]byte, uint32) {
             hash := md5.New()
             hash.Write([]byte(secret))
             hash.Write(reqAuth)
-            hash.Write([]byte{byte(salt)})
+            hash.Write(salt)
             b = append(b, hash.Sum(nil))
          }
          // c(1) = p(1) xor b(1)
@@ -178,19 +176,53 @@ func tunnelPass(secret string, key []byte, reqAuth []byte) ([]byte, uint32) {
          }
          // c(i) = p(i) xor b(i)
          {
-            c = append(c, xor(p, b[0]))
+            c = append(c, xor(p, b[i]))
          }
          // C = C + c(i)
          C = append(C, c[i]...)
       }
    }
-   return append([]byte{byte(salt)}, C...), salt
+
+   if len(C) != 32 {
+      panic("C not 32-bytes as expected")
+   }
+
+   /*
+      The plaintext String field consists of three logical sub-fields:
+      - the Key-Length
+      - and Key sub-fields (both of which are required),
+      - and the optional Padding sub-field.
+
+      * The Key-Length sub-field is one octet in length and contains the length of the unencrypted Key
+       sub-field. 
+      * The Key sub-field contains the actual encryption key.
+       
+      * If the combined length (in octets) of the unencrypted Key-Length
+       and Key sub-fields is not an even multiple of 16, then the Padding
+       sub-field MUST be present.  If it is present, the length of the
+       Padding sub-field is variable, between 1 and 15 octets.
+   */
+   plain := make([]byte, 2+len(C))
+   plain[0] = salt[0]
+   plain[1] = salt[1]
+   copy(plain[2:], C)
+   return plain
+}
+
+func salt(offset uint8) []byte {
+   r := rand.New(rand.NewSource(time.Now().UnixNano()))
+   salt := uint8(r.Uint32())
+
+   pfx := make([]byte, 2)
+   pfx[0] = byte(0x80 | ( (offset & 0x0f) << 3) | (salt & 0x07))
+   pfx[1] = byte(salt)
+   return pfx
 }
 
 func Mmpev2(secret string, pass string, reqAuth []byte, ntResponse []byte) ([]byte, []byte) {
    send, recv := masterKeys(pass, ntResponse)
-   sendEnc, _ := tunnelPass(secret, send, reqAuth)
-   recvEnc, _ := tunnelPass(secret, recv, reqAuth)
+   sendEnc := tunnelPass(secret, send, reqAuth, len(pass), salt(0))
+   recvEnc := tunnelPass(secret, recv, reqAuth, len(pass), salt(1))
 
    return sendEnc, recvEnc
 }
