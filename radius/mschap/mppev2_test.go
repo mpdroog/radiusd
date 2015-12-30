@@ -36,8 +36,8 @@ func TestGetAsymmetricStartKey40bit(t *testing.T) {
 	expect := []byte{
 		0x8B, 0x7C, 0xDC, 0x14, 0x9B, 0x99, 0x3A, 0x1B,
 	}
-	res := getAsymmetricStartKey(masterKey, 8, true, true)
-	//resRecv := getAsymmetricStartKey(masterKey, 8, false, true)
+	res := getAsymmetricStartKey(masterKey, 8, true)
+	//resRecv := getAsymmetricStartKey(masterKey, 8, false)
 
 	if bytes.Compare(res, expect) != 0 {
 		t.Fatal(fmt.Printf("GetAsymmetricStartKey40bit bytes wrong. expect=%d found=%d", expect, res))
@@ -53,8 +53,8 @@ func TestGetAsymmetricStartKey128bit(t *testing.T) {
 		0x8B, 0x7C, 0xDC, 0x14, 0x9B, 0x99, 0x3A, 0x1B,
 		0xA1, 0x18, 0xCB, 0x15, 0x3F, 0x56, 0xDC, 0xCB,
 	}
-	res := getAsymmetricStartKey(masterKey, 16, true, true)
-	//resRecv := getAsymmetricStartKey(masterKey, 16, false, true)
+	res := getAsymmetricStartKey(masterKey, 16, true)
+	//resRecv := getAsymmetricStartKey(masterKey, 16, false)
 
 	if bytes.Compare(res, expect) != 0 {
 		t.Fatal(fmt.Printf("GetAsymmetricStartKey128bit bytes wrong. expect=%d found=%d", expect, res))

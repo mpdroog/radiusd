@@ -65,21 +65,22 @@ func getMasterKey(hashHash []byte, ntRes []byte) []byte {
 	return hash.Sum(nil)[:16]
 }
 
-func getAsymmetricStartKey(masterKey []byte, sessKeyLen int, isSend bool, isServer bool) []byte {
+func getAsymmetricStartKey(masterKey []byte, sessKeyLen int, isSend bool) []byte {
    var magic []byte
 
    if isSend {
-      if isServer {
-         magic = magic3
-      } else {
-         magic = magic2
-      }
+      magic = magic3
    } else {
-      if isServer {
-         magic = magic2
-      } else {
-         magic = magic3
-      }
+      magic = magic2
+   }
+   if len(SHSpad1) != 40 {
+      panic("Should not get here")
+   }
+   if len(SHSpad2) != 40 {
+      panic("Should not get here")
+   }
+   if len(magic) != 84 {
+      panic("Should not get here")
    }
 
    hash := sha1.New()
@@ -96,9 +97,8 @@ func masterKeys(pass string, ntResponse []byte) ([]byte, []byte) {
 	// GetMasterKey(PasswordHashHash, NtResponse, MasterKey)
 	masterKey := getMasterKey(hashHash, ntResponse)
 
-   // TODO: 16 on highest encryption
-   sendKey := getAsymmetricStartKey(masterKey, 16, true, true)
-   recvKey := getAsymmetricStartKey(masterKey, 16, false, true)
+   sendKey := getAsymmetricStartKey(masterKey, 16, true)
+   recvKey := getAsymmetricStartKey(masterKey, 16, false)
    return sendKey, recvKey
 }
 
