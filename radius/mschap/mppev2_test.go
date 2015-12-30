@@ -132,8 +132,8 @@ func TestMmpe2(t *testing.T) {
 
 	// Content of Mmpe2 so we can hardcode Salt
 	sendKey, recvKey := masterKeys(pass, ntResponse)
-	send := tunnelPass(secret, sendKey, reqAuth, len(pass), []byte{0xb9, 0xdf})
-	recv := tunnelPass(secret, recvKey, reqAuth, len(pass), []byte{0xb0, 0xc4})
+	send := tunnelPass(secret, sendKey, reqAuth, []byte{0xb9, 0xdf})
+	recv := tunnelPass(secret, recvKey, reqAuth, []byte{0xb0, 0xc4})
 
 	if bytes.Compare(send, sendExpect) != 0 {
 		t.Fatalf("Send-Key diff, expect=%d res=%d", sendExpect, send)
