@@ -86,3 +86,18 @@ func TestXor(t *testing.T) {
 		t.Fatal(fmt.Printf("TestXor bytes wrong. expect=%d found=%d", expect, c))		
 	}
 }
+
+func TestMmpe2(t *testing.T) {
+	secret := "secret"
+	pass := "geheim"
+	reqAuth := []byte{}
+	ntResponse := []byte{}
+
+	send, recv := Mmpev2(secret, pass, reqAuth, ntResponse)
+	if len(send) != 34 {
+		t.Fatalf("Send length invalid expect 34, got %d", len(send))
+	}
+	if len(recv) != 34 {
+		t.Fatalf("Recv length invalid expect 34, got %d", len(recv))
+	}
+}
