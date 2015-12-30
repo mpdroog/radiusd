@@ -161,8 +161,7 @@ func auth(w io.Writer, req *radius.Packet) {
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Server-side processing error"))
 					return
 				}
-				// Mmpev2(secret string, pass string, reqAuth []byte, ntResponse []byte) ([]byte, []byte)
-				send, recv := mschap.Mmpev2(req.Secret(), limits.Pass, req.Auth, enc.ChallengeResponse)
+				send, recv := mschap.Mmpev2(req.Secret(), limits.Pass, req.Auth, res.Response)
 
 				if bytes.Compare(res.Response, enc.ChallengeResponse) != 0 {
 					if config.Verbose {
