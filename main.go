@@ -29,7 +29,7 @@ func main() {
 	var configPath string
 	flag.BoolVar(&config.Debug, "d", false, "Debug packetdata")
 	flag.BoolVar(&config.Verbose, "v", false, "Show all that happens")
-	flag.StringVar(&configPath, "c", "./config.json", "Configuration")
+	flag.StringVar(&configPath, "c", "./config.toml", "Configuration")
 	flag.Parse()
 
 	if e := config.Init(configPath); e != nil {

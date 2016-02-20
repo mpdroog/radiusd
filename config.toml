@@ -1,0 +1,12 @@
+Dsn = "user:password@/dbname?strict=true&charset=utf8mb4,utf8"
+ControlListen="127.0.0.1:8124"
+
+[listen]
+	[listen.auth]
+		Addr="127.0.0.1:1812"
+		Secret="secret"
+		CIDR=["127.0.0.1/32"]
+	[listen.acct]
+		Addr="127.0.0.1:1813"
+		Secret="secret"
+		CIDR=["127.0.0.1/32"]

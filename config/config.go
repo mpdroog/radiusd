@@ -2,12 +2,12 @@ package config
 
 import (
 	"database/sql"
-	"encoding/json"
 	_ "github.com/go-sql-driver/mysql"
-	"io/ioutil"
 	"log"
 	"os"
 	"net"
+	"github.com/BurntSushi/toml"
+	"fmt"
 )
 
 type Listener struct {
@@ -18,7 +18,7 @@ type Listener struct {
 
 type Conf struct {
 	Dsn          string
-	Listeners    []Listener
+	Listen       map[string]Listener
 	ControlListen string
 }
 
@@ -35,13 +35,15 @@ var (
 )
 
 func Init(path string) error {
-	b, e := ioutil.ReadFile(path)
+	r, e := os.Open(path)
 	if e != nil {
 		return e
 	}
+	defer r.Close()
+
 	C = new(Conf)
-	if e := json.Unmarshal(b, C); e != nil {
-		return e
+	if _, e := toml.DecodeReader(r, &C); e != nil {
+		return fmt.Errorf("TOML: %s", e)
 	}
 	Hostname, e = os.Hostname()
 	if e != nil {
