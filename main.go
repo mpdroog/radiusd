@@ -5,9 +5,14 @@ import (
 	"radiusd/config"
 	"radiusd/radius"
 	"radiusd/sync"
+	S "sync"
 )
 
+var wg *S.WaitGroup
+
 func listenAndServe(l config.Listener) {
+	defer wg.Done()
+
 	if config.Verbose {
 		config.Log.Printf("Listening on " + l.Addr)
 	}
@@ -62,14 +67,13 @@ func main() {
 
 	go Control()
 	go sync.Loop()
-	for idx, listen := range config.C.Listeners {
-		if idx+1 == len(config.C.Listeners) {
-			// Run last listener in main thread
-			listenAndServe(listen)
-		} else {
-			go listenAndServe(listen)
-		}
+
+	wg = new(S.WaitGroup)
+	for _, listen := range config.C.Listen {
+		wg.Add(1)
+		go listenAndServe(listen)
 	}
+	wg.Wait()
 
 	// Write all stats
 	sync.Force()
