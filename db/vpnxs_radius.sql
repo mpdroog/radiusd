@@ -43,6 +43,7 @@ CREATE TABLE `dedi_ip` (
   `ip` varchar(50) NOT NULL,
   `time_added` int(10) unsigned NOT NULL,
   `time_reserved` int(10) unsigned DEFAULT NULL,
+  `time_updated` int(10) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_ip` (`ip`),
   UNIQUE KEY `unique_user` (`user_id`)
