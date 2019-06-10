@@ -2,9 +2,9 @@
 package mschap
 
 import (
-	"testing"
 	"bytes"
 	"fmt"
+	"testing"
 )
 
 func TestGetMasterKey(t *testing.T) {
@@ -12,7 +12,7 @@ func TestGetMasterKey(t *testing.T) {
 		0x41, 0xC0, 0x0C, 0x58, 0x4B, 0xD2, 0xD9, 0x1C,
 		0x40, 0x17, 0xA2, 0xA1, 0x2F, 0xA5, 0x9F, 0x3F,
 	}
-	ntRes := []byte {
+	ntRes := []byte{
 		0x82, 0x30, 0x9E, 0xCD, 0x8D, 0x70, 0x8B, 0x5E,
 		0xA0, 0x8F, 0xAA, 0x39, 0x81, 0xCD, 0x83, 0x54,
 		0x42, 0x33, 0x11, 0x4A, 0x3D, 0x85, 0xD6, 0xDF,
@@ -67,7 +67,7 @@ func TestMultipleOfSmaller(t *testing.T) {
 	res := multipleOf(val, 16)
 
 	if bytes.Compare(res, expect) != 0 {
-		t.Fatal(fmt.Printf("TestMultipleOf bytes wrong. expect=%d found=%d", expect, res))		
+		t.Fatal(fmt.Printf("TestMultipleOf bytes wrong. expect=%d found=%d", expect, res))
 	}
 }
 func TestMultipleOfEqual(t *testing.T) {
@@ -76,7 +76,7 @@ func TestMultipleOfEqual(t *testing.T) {
 	res := multipleOf(val, 16)
 
 	if bytes.Compare(res, expect) != 0 {
-		t.Fatal(fmt.Printf("TestMultipleOf bytes wrong. expect=%d found=%d", expect, res))		
+		t.Fatal(fmt.Printf("TestMultipleOf bytes wrong. expect=%d found=%d", expect, res))
 	}
 }
 func TestMultipleOfBigger(t *testing.T) {
@@ -88,7 +88,7 @@ func TestMultipleOfBigger(t *testing.T) {
 	res := multipleOf(val, 16)
 
 	if bytes.Compare(res, expect) != 0 {
-		t.Fatal(fmt.Printf("TestMultipleOf bytes wrong. expect=%d found=%d", expect, res))		
+		t.Fatal(fmt.Printf("TestMultipleOf bytes wrong. expect=%d found=%d", expect, res))
 	}
 }
 
@@ -99,7 +99,7 @@ func TestXor(t *testing.T) {
 	c := xor(a, b)
 
 	if bytes.Compare(c, expect) != 0 {
-		t.Fatal(fmt.Printf("TestXor bytes wrong. expect=%d found=%d", expect, c))		
+		t.Fatal(fmt.Printf("TestXor bytes wrong. expect=%d found=%d", expect, c))
 	}
 }
 

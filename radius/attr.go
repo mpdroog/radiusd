@@ -6,8 +6,8 @@ import (
 
 type AttrEncoder interface {
 	Encode() []byte
-	Type()   AttributeType
-	Bytes()  []byte
+	Type() AttributeType
+	Bytes() []byte
 	Length() uint8
 	String() string
 }
@@ -42,7 +42,7 @@ func (a Attr) String() string {
 func NewAttr(attrType AttributeType, bytes []byte, length uint8) AttrEncoder {
 	return Attr{
 		attrType: attrType,
-		length: length,
-		bytes: bytes,
+		length:   length,
+		bytes:    bytes,
 	}
 }

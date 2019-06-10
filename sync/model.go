@@ -3,7 +3,8 @@ package sync
 import (
 	"database/sql"
 	"fmt"
-	"radiusd/config"
+
+	"github.com/mpdroog/radiusd/config"
 )
 
 var (

@@ -1,7 +1,7 @@
 package vendor
 
 const (
-	_                                                     = iota //drop the zero
+	_                                             = iota //drop the zero
 	MikrotikRecvLimit               AttributeType = iota //1
 	MikrotikXmitLimit               AttributeType = iota //2
 	MikrotikGroup                   AttributeType = iota //3

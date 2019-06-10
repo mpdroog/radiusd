@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"radiusd/config"
+
 	"github.com/itshosted/webutils/httpd"
 	"github.com/itshosted/webutils/middleware"
 	"github.com/itshosted/webutils/muxdoc"
 	"github.com/itshosted/webutils/ratelimit"
+	"github.com/mpdroog/radiusd/config"
 )
 
 var (
 	mux muxdoc.MuxDoc
-	ln net.Listener
+	ln  net.Listener
 )
 
 func Control() {

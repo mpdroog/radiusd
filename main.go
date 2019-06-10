@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"radiusd/config"
-	"radiusd/radius"
-	"radiusd/sync"
 	S "sync"
+
+	"github.com/mpdroog/radiusd/config"
+	"github.com/mpdroog/radiusd/radius"
+	"github.com/mpdroog/radiusd/sync"
 )
 
 var wg *S.WaitGroup

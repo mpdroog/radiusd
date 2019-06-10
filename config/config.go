@@ -2,12 +2,13 @@ package config
 
 import (
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
-	"log"
-	"os"
-	"net"
-	"github.com/BurntSushi/toml"
 	"fmt"
+	"log"
+	"net"
+	"os"
+
+	"github.com/BurntSushi/toml"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type Listener struct {
@@ -17,21 +18,21 @@ type Listener struct {
 }
 
 type Conf struct {
-	Dsn          string
-	Listen       map[string]Listener
+	Dsn           string
+	Listen        map[string]Listener
 	ControlListen string
 }
 
 var (
-	C *Conf
-	Log *log.Logger
-	Debug bool
-	Verbose bool
-	Hostname string
-	DB *sql.DB
+	C         *Conf
+	Log       *log.Logger
+	Debug     bool
+	Verbose   bool
+	Hostname  string
+	DB        *sql.DB
 	ErrNoRows = sql.ErrNoRows
-	Stopping bool
-	Sock []*net.UDPConn
+	Stopping  bool
+	Sock      []*net.UDPConn
 )
 
 func Init(path string) error {

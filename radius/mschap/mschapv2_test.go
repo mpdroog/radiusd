@@ -2,8 +2,8 @@
 package mschap
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -81,7 +81,7 @@ func TestEncryptMSCHAP2(t *testing.T) {
 }
 
 func TesthashNtPasswordHash2(t *testing.T) {
-	hash := []byte {
+	hash := []byte{
 		0x63, 0x00, 0x6C, 0x00, 0x69,
 		0x00, 0x65, 0x00, 0x6E, 0x00,
 		0x74, 0x00, 0x50, 0x00, 0x61,

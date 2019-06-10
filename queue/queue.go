@@ -8,9 +8,9 @@ import (
 )
 
 type Stat struct {
-	InOctet  uint32
-	OutOctet uint32
-	InPacket uint32
+	InOctet   uint32
+	OutOctet  uint32
+	InPacket  uint32
 	OutPacket uint32
 }
 

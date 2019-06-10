@@ -1,8 +1,8 @@
 package radius
 
 import (
-	"crypto/md5"
 	"bytes"
+	"crypto/md5"
 )
 
 /*

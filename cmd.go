@@ -2,27 +2,28 @@
 package main
 
 import (
-	"io"
-	"radiusd/config"
-	"radiusd/model"
-	"radiusd/queue"
-	"radiusd/radius"
-	"radiusd/radius/mschap"
-	"radiusd/radius/vendor"
-	"net"
 	"bytes"
+	"io"
+	"net"
+
+	"github.com/mpdroog/radiusd/config"
+	"github.com/mpdroog/radiusd/model"
+	"github.com/mpdroog/radiusd/queue"
+	"github.com/mpdroog/radiusd/radius"
+	"github.com/mpdroog/radiusd/radius/mschap"
+	"github.com/mpdroog/radiusd/radius/vendor"
 )
 
 func createSess(req *radius.Packet) model.Session {
 	return model.Session{
-		BytesIn: radius.DecodeFour(req.Attr(radius.AcctInputOctets)),
-		BytesOut: radius.DecodeFour(req.Attr(radius.AcctOutputOctets)),
-		PacketsIn: radius.DecodeFour(req.Attr(radius.AcctInputPackets)),
-		PacketsOut: radius.DecodeFour(req.Attr(radius.AcctOutputPackets)),
-		SessionID: string(req.Attr(radius.AcctSessionId)),
+		BytesIn:     radius.DecodeFour(req.Attr(radius.AcctInputOctets)),
+		BytesOut:    radius.DecodeFour(req.Attr(radius.AcctOutputOctets)),
+		PacketsIn:   radius.DecodeFour(req.Attr(radius.AcctInputPackets)),
+		PacketsOut:  radius.DecodeFour(req.Attr(radius.AcctOutputPackets)),
+		SessionID:   string(req.Attr(radius.AcctSessionId)),
 		SessionTime: radius.DecodeFour(req.Attr(radius.AcctSessionTime)),
-		User: string(req.Attr(radius.UserName)),
-		NasIP: radius.DecodeIP(req.Attr(radius.NASIPAddress)).String(),
+		User:        string(req.Attr(radius.UserName)),
+		NasIP:       radius.DecodeIP(req.Attr(radius.NASIPAddress)).String(),
 	}
 }
 
@@ -73,7 +74,7 @@ func auth(w io.Writer, req *radius.Packet) {
 			if radius.AttributeType(attr.Type()) == radius.VendorSpecific {
 				hdr := radius.VendorSpecificHeader(attr.Bytes())
 				if hdr.VendorId == vendor.Microsoft {
-					attrs[ vendor.AttributeType(hdr.VendorType) ] = attr
+					attrs[vendor.AttributeType(hdr.VendorType)] = attr
 				}
 			}
 		}
@@ -127,22 +128,22 @@ func auth(w io.Writer, req *radius.Packet) {
 				}
 
 				reply = append(reply, radius.VendorAttr{
-					Type: radius.VendorSpecific,
+					Type:     radius.VendorSpecific,
 					VendorId: vendor.Microsoft,
 					/* 1 Encryption-Allowed, 2 Encryption-Required */
 					Values: []radius.VendorAttrString{
 						radius.VendorAttrString{
-							Type: vendor.MSMPPEEncryptionPolicy,
+							Type:  vendor.MSMPPEEncryptionPolicy,
 							Value: []byte{0x0, 0x0, 0x0, 0x01},
 						},
 						/* encryption types, allow RC4[40/128bit] */
 						radius.VendorAttrString{
-							Type: vendor.MSMPPEEncryptionTypes,
+							Type:  vendor.MSMPPEEncryptionTypes,
 							Value: []byte{0x0, 0x0, 0x0, 0x06},
 						},
 						/* mppe - encryption negotation key */
 						radius.VendorAttrString{
-							Type: vendor.MSCHAPMPPEKeys,
+							Type:  vendor.MSCHAPMPPEKeys,
 							Value: mppe,
 						},
 					},
@@ -178,32 +179,32 @@ func auth(w io.Writer, req *radius.Packet) {
 				}
 				// TODO: Framed-Protocol = PPP, Framed-Compression = Van-Jacobson-TCP-IP
 				reply = append(reply, radius.VendorAttr{
-					Type: radius.VendorSpecific,
+					Type:     radius.VendorSpecific,
 					VendorId: vendor.Microsoft,
 					Values: []radius.VendorAttrString{
 						/* 1 Encryption-Allowed, 2 Encryption-Required */
 						radius.VendorAttrString{
-							Type: vendor.MSMPPEEncryptionPolicy,
+							Type:  vendor.MSMPPEEncryptionPolicy,
 							Value: []byte{0x0, 0x0, 0x0, 0x01},
 						},
 						/* encryption types, allow RC4[40/128bit] */
 						radius.VendorAttrString{
-							Type: vendor.MSMPPEEncryptionTypes,
+							Type:  vendor.MSMPPEEncryptionTypes,
 							Value: []byte{0x0, 0x0, 0x0, 0x06},
 						},
 						/* success challenge */
 						radius.VendorAttrString{
-							Type: vendor.MSCHAP2Success,
+							Type:  vendor.MSCHAP2Success,
 							Value: append([]byte{byte(res.Ident)}, []byte(enc.AuthenticatorResponse)...),
 						},
 						/* Send-Key */
 						radius.VendorAttrString{
-							Type: vendor.MSMPPESendKey,
+							Type:  vendor.MSMPPESendKey,
 							Value: send,
 						},
 						/* Recv-Key */
 						radius.VendorAttrString{
-							Type: vendor.MSMPPERecvKey,
+							Type:  vendor.MSMPPERecvKey,
 							Value: recv,
 						},
 					},
@@ -237,10 +238,10 @@ func auth(w io.Writer, req *radius.Packet) {
 		if limits.Ratelimit != nil {
 			// 	MT-Rate-Limit = MikrotikRateLimit
 			reply = append(reply, radius.VendorAttr{
-				Type: radius.VendorSpecific,
+				Type:     radius.VendorSpecific,
 				VendorId: vendor.Mikrotik,
 				Values: []radius.VendorAttrString{radius.VendorAttrString{
-					Type: vendor.MikrotikRateLimit,
+					Type:  vendor.MikrotikRateLimit,
 					Value: []byte(*limits.Ratelimit),
 				}},
 			}.Encode())
@@ -249,13 +250,13 @@ func auth(w io.Writer, req *radius.Packet) {
 			// MS-Primary-DNS-Server
 			// MS-Secondary-DNS-Server
 			reply = append(reply, radius.VendorAttr{
-				Type: radius.VendorSpecific,
+				Type:     radius.VendorSpecific,
 				VendorId: vendor.Microsoft,
 				Values: []radius.VendorAttrString{radius.VendorAttrString{
-					Type: vendor.MSPrimaryDNSServer,
+					Type:  vendor.MSPrimaryDNSServer,
 					Value: net.ParseIP(*limits.DnsOne).To4(),
 				}, radius.VendorAttrString{
-					Type: vendor.MSSecondaryDNSServer,
+					Type:  vendor.MSSecondaryDNSServer,
 					Value: net.ParseIP(*limits.DnsTwo).To4(),
 				}},
 			}.Encode())
