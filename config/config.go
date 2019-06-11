@@ -1,14 +1,12 @@
 package config
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net"
 	"os"
 
 	"github.com/BurntSushi/toml"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 type Listener struct {
@@ -24,15 +22,13 @@ type Conf struct {
 }
 
 var (
-	C         *Conf
-	Log       *log.Logger
-	Debug     bool
-	Verbose   bool
-	Hostname  string
-	DB        *sql.DB
-	ErrNoRows = sql.ErrNoRows
-	Stopping  bool
-	Sock      []*net.UDPConn
+	C        *Conf
+	Log      *log.Logger
+	Debug    bool
+	Verbose  bool
+	Hostname string
+	Stopping bool
+	Sock     []*net.UDPConn
 )
 
 func Init(path string) error {
@@ -52,18 +48,6 @@ func Init(path string) error {
 	}
 
 	Log = log.New(os.Stdout, "radiusd ", log.LstdFlags)
-	return dbInit("mysql", C.Dsn)
-}
 
-func dbInit(driver string, dsn string) error {
-	var e error
-	DB, e = sql.Open(driver, dsn)
-	if e != nil {
-		return e
-	}
-	return DB.Ping()
-}
-
-func DbClose() error {
-	return DB.Close()
+	return nil
 }

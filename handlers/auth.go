@@ -1,43 +1,27 @@
-// radius commands
-package main
+package handlers
 
 import (
 	"bytes"
 	"io"
 	"net"
 
-	"github.com/mpdroog/radiusd/config"
 	"github.com/mpdroog/radiusd/model"
-	"github.com/mpdroog/radiusd/queue"
 	"github.com/mpdroog/radiusd/radius"
 	"github.com/mpdroog/radiusd/radius/mschap"
 	"github.com/mpdroog/radiusd/radius/vendor"
 )
 
-func createSess(req *radius.Packet) model.Session {
-	return model.Session{
-		BytesIn:     radius.DecodeFour(req.Attr(radius.AcctInputOctets)),
-		BytesOut:    radius.DecodeFour(req.Attr(radius.AcctOutputOctets)),
-		PacketsIn:   radius.DecodeFour(req.Attr(radius.AcctInputPackets)),
-		PacketsOut:  radius.DecodeFour(req.Attr(radius.AcctOutputPackets)),
-		SessionID:   string(req.Attr(radius.AcctSessionId)),
-		SessionTime: radius.DecodeFour(req.Attr(radius.AcctSessionTime)),
-		User:        string(req.Attr(radius.UserName)),
-		NasIP:       radius.DecodeIP(req.Attr(radius.NASIPAddress)).String(),
-	}
-}
-
-func auth(w io.Writer, req *radius.Packet) {
+func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 	if e := radius.ValidateAuthRequest(req); e != "" {
-		config.Log.Printf("auth.begin e=%s", e)
+		h.Logger.Printf("auth.begin e=%s", e)
 		return
 	}
 	reply := []radius.AttrEncoder{}
 
 	user := string(req.Attr(radius.UserName))
-	limits, e := model.Auth(user)
+	limits, e := model.Auth(h.Storage, user)
 	if e != nil {
-		config.Log.Printf("auth.begin e=" + e.Error())
+		h.Logger.Printf("auth.begin e=" + e.Error())
 		return
 	}
 	if limits.Pass == "" {
@@ -51,8 +35,8 @@ func auth(w io.Writer, req *radius.Packet) {
 			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
 			return
 		}
-		if config.Verbose {
-			config.Log.Printf("PAP login user=%s", user)
+		if h.Verbose {
+			h.Logger.Printf("PAP login user=%s", user)
 		}
 	} else if req.HasAttr(radius.CHAPPassword) {
 		challenge := req.Attr(radius.CHAPChallenge)
@@ -64,8 +48,8 @@ func auth(w io.Writer, req *radius.Packet) {
 			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
 			return
 		}
-		if config.Verbose {
-			config.Log.Printf("CHAP login user=%s", user)
+		if h.Verbose {
+			h.Logger.Printf("CHAP login user=%s", user)
 		}
 	} else {
 		// Search for MSCHAP attrs
@@ -102,20 +86,20 @@ func auth(w io.Writer, req *radius.Packet) {
 				// Check for correctness
 				calc, e := mschap.Encryptv1(challenge, limits.Pass)
 				if e != nil {
-					config.Log.Printf("MSCHAPv1: " + e.Error())
+					h.Logger.Printf("MSCHAPv1: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: Server-side processing error"))
 					return
 				}
 				mppe, e := mschap.Mppev1(limits.Pass)
 				if e != nil {
-					config.Log.Printf("MPPEv1: " + e.Error())
+					h.Logger.Printf("MPPEv1: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MPPEv1: Server-side processing error"))
 					return
 				}
 
 				if bytes.Compare(res.NTResponse, calc) != 0 {
-					if config.Verbose {
-						config.Log.Printf(
+					if h.Verbose {
+						h.Logger.Printf(
 							"MSCHAPv1 user=%s mismatch expect=%x, received=%x",
 							user, calc, res.NTResponse,
 						)
@@ -123,8 +107,8 @@ func auth(w io.Writer, req *radius.Packet) {
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
 					return
 				}
-				if config.Verbose {
-					config.Log.Printf("MSCHAPv1 login user=%s", user)
+				if h.Verbose {
+					h.Logger.Printf("MSCHAPv1 login user=%s", user)
 				}
 
 				reply = append(reply, radius.VendorAttr{
@@ -158,15 +142,15 @@ func auth(w io.Writer, req *radius.Packet) {
 				}
 				enc, e := mschap.Encryptv2(challenge, res.PeerChallenge, user, limits.Pass)
 				if e != nil {
-					config.Log.Printf("MSCHAPv2: " + e.Error())
+					h.Logger.Printf("MSCHAPv2: " + e.Error())
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Server-side processing error"))
 					return
 				}
 				send, recv := mschap.Mmpev2(req.Secret(), limits.Pass, req.Auth, res.Response)
 
 				if bytes.Compare(res.Response, enc.ChallengeResponse) != 0 {
-					if config.Verbose {
-						config.Log.Printf(
+					if h.Verbose {
+						h.Logger.Printf(
 							"MSCHAPv2 user=%s mismatch expect=%x, received=%x",
 							user, enc.ChallengeResponse, res.Response,
 						)
@@ -174,8 +158,8 @@ func auth(w io.Writer, req *radius.Packet) {
 					w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
 					return
 				}
-				if config.Verbose {
-					config.Log.Printf("MSCHAPv2 login user=%s", user)
+				if h.Verbose {
+					h.Logger.Printf("MSCHAPv2 login user=%s", user)
 				}
 				// TODO: Framed-Protocol = PPP, Framed-Compression = Van-Jacobson-TCP-IP
 				reply = append(reply, radius.VendorAttr{
@@ -217,9 +201,9 @@ func auth(w io.Writer, req *radius.Packet) {
 		}
 	}
 
-	conns, e := model.Conns(user)
+	conns, e := model.Conns(h.Storage, user)
 	if e != nil {
-		config.Log.Printf("auth.begin e=" + e.Error())
+		h.Logger.Printf("auth.begin e=" + e.Error())
 		return
 	}
 	if conns >= limits.SimultaneousUse {
@@ -268,121 +252,4 @@ func auth(w io.Writer, req *radius.Packet) {
 	}
 
 	w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid user/pass"))
-}
-
-func acctBegin(w io.Writer, req *radius.Packet) {
-	if e := radius.ValidateAcctRequest(req); e != "" {
-		config.Log.Printf("WARN: acct.begin err=" + e)
-		return
-	}
-	if !req.HasAttr(radius.FramedIPAddress) {
-		config.Log.Printf("WARN: acct.begin missing FramedIPAddress")
-		return
-	}
-
-	user := string(req.Attr(radius.UserName))
-	sess := string(req.Attr(radius.AcctSessionId))
-	nasIp := radius.DecodeIP(req.Attr(radius.NASIPAddress)).String()
-	clientIp := string(req.Attr(radius.CallingStationId))
-	assignedIp := radius.DecodeIP(req.Attr(radius.FramedIPAddress)).String()
-
-	if config.Verbose {
-		config.Log.Printf("acct.begin sess=%s for user=%s on nasIP=%s", sess, user, nasIp)
-	}
-	reply := []radius.AttrEncoder{}
-	_, e := model.Limits(user)
-	if e != nil {
-		if e == model.ErrNoRows {
-			config.Log.Printf("acct.begin received invalid user=" + user)
-			return
-		}
-		config.Log.Printf("acct.begin e=" + e.Error())
-		return
-	}
-
-	if e := model.SessionAdd(sess, user, nasIp, assignedIp, clientIp); e != nil {
-		config.Log.Printf("acct.begin e=%s", e.Error())
-		return
-	}
-	w.Write(req.Response(radius.AccountingResponse, reply))
-}
-
-func acctUpdate(w io.Writer, req *radius.Packet) {
-	if e := radius.ValidateAcctRequest(req); e != "" {
-		config.Log.Printf("acct.update e=" + e)
-		return
-	}
-
-	sess := createSess(req)
-	if config.Verbose {
-		config.Log.Printf(
-			"acct.update sess=%s for user=%s on NasIP=%s sessTime=%d octetsIn=%d octetsOut=%d",
-			sess.SessionID, sess.User, sess.NasIP, sess.SessionTime, sess.BytesIn, sess.BytesOut,
-		)
-	}
-	txn, e := model.Begin()
-	if e != nil {
-		config.Log.Printf("acct.update e=" + e.Error())
-		return
-	}
-	if e := model.SessionUpdate(txn, sess); e != nil {
-		config.Log.Printf("acct.update e=" + e.Error())
-		return
-	}
-	queue.Queue(sess.User, sess.BytesIn, sess.BytesOut, sess.PacketsIn, sess.PacketsOut)
-	if e := txn.Commit(); e != nil {
-		config.Log.Printf("acct.update e=" + e.Error())
-		return
-	}
-	w.Write(radius.DefaultPacket(req, radius.AccountingResponse, "Updated accounting."))
-}
-
-func acctStop(w io.Writer, req *radius.Packet) {
-	if e := radius.ValidateAcctRequest(req); e != "" {
-		config.Log.Printf("acct.stop e=" + e)
-		return
-	}
-	user := string(req.Attr(radius.UserName))
-	sess := string(req.Attr(radius.AcctSessionId))
-	nasIp := radius.DecodeIP(req.Attr(radius.NASIPAddress)).String()
-
-	sessTime := radius.DecodeFour(req.Attr(radius.AcctSessionTime))
-	octIn := radius.DecodeFour(req.Attr(radius.AcctInputOctets))
-	octOut := radius.DecodeFour(req.Attr(radius.AcctOutputOctets))
-
-	packIn := radius.DecodeFour(req.Attr(radius.AcctInputPackets))
-	packOut := radius.DecodeFour(req.Attr(radius.AcctOutputPackets))
-
-	if config.Verbose {
-		config.Log.Printf(
-			"acct.stop sess=%s for user=%s sessTime=%d octetsIn=%d octetsOut=%d",
-			sess, user, sessTime, octIn, octOut,
-		)
-	}
-
-	txn, e := model.Begin()
-	if e != nil {
-		config.Log.Printf("acct.update e=" + e.Error())
-		return
-	}
-	sessModel := createSess(req)
-	if e := model.SessionUpdate(txn, sessModel); e != nil {
-		config.Log.Printf("acct.update e=" + e.Error())
-		return
-	}
-	if e := model.SessionLog(txn, sess, user, nasIp); e != nil {
-		config.Log.Printf("acct.update e=" + e.Error())
-		return
-	}
-	if e := model.SessionRemove(txn, sess, user, nasIp); e != nil {
-		config.Log.Printf("acct.update e=" + e.Error())
-		return
-	}
-	queue.Queue(user, octIn, octOut, packIn, packOut)
-	if e := txn.Commit(); e != nil {
-		config.Log.Printf("acct.update e=" + e.Error())
-		return
-	}
-
-	w.Write(radius.DefaultPacket(req, radius.AccountingResponse, "Finished accounting."))
 }
