@@ -3,10 +3,8 @@ package sync
 import "errors"
 
 var (
-	ErrInsertAcct     = errors.New("account.add fail")
-	ErrUpdateUsage    = errors.New("user.update fail")
-	ErrFinishSession  = errors.New("session.finish fail")
-	ErrArchiveSession = errors.New("session.archive fail")
+	ErrInsertAcct  = errors.New("account.add fail")
+	ErrUpdateUsage = errors.New("user.update fail")
 )
 
 type Storage interface {
