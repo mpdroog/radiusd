@@ -25,14 +25,14 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 		return
 	}
 	if limits.Pass == "" {
-		w.Write(radius.DefaultPacket(req, radius.AccessReject, "No such user"))
+		w.Write(radius.DefaultPacket(req, radius.AccessReject, "No such user", h.Verbose, h.Logger))
 		return
 	}
 
 	if req.HasAttr(radius.UserPassword) {
 		pass := radius.DecryptPassword(req.Attr(radius.UserPassword), req)
 		if pass != limits.Pass {
-			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
+			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password", h.Verbose, h.Logger))
 			return
 		}
 		if h.Verbose {
@@ -45,7 +45,7 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 		// TODO: No challenge then use Request Authenticator
 
 		if !radius.CHAPMatch(limits.Pass, hash, challenge) {
-			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
+			w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password", h.Verbose, h.Logger))
 			return
 		}
 		if h.Verbose {
@@ -64,7 +64,7 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 		}
 
 		if len(attrs) > 0 && len(attrs) != 2 {
-			w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAP: Missing attrs? MS-CHAP-Challenge/MS-CHAP-Response"))
+			w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAP: Missing attrs? MS-CHAP-Challenge/MS-CHAP-Response", h.Verbose, h.Logger))
 			return
 		} else if len(attrs) == 2 {
 			// Collect our data
@@ -75,11 +75,11 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 				if res.Flags == 0 {
 					// If it is zero, the NT-Response field MUST be ignored and
 					// the LM-Response field used.
-					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: LM-Response not supported."))
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: LM-Response not supported.", h.Verbose, h.Logger))
 					return
 				}
 				if bytes.Compare(res.LMResponse, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}) != 0 {
-					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: LM-Response set."))
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: LM-Response set.", h.Verbose, h.Logger))
 					return
 				}
 
@@ -87,13 +87,13 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 				calc, e := mschap.Encryptv1(challenge, limits.Pass)
 				if e != nil {
 					h.Logger.Printf("MSCHAPv1: " + e.Error())
-					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: Server-side processing error"))
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv1: Server-side processing error", h.Verbose, h.Logger))
 					return
 				}
 				mppe, e := mschap.Mppev1(limits.Pass)
 				if e != nil {
 					h.Logger.Printf("MPPEv1: " + e.Error())
-					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MPPEv1: Server-side processing error"))
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MPPEv1: Server-side processing error", h.Verbose, h.Logger))
 					return
 				}
 
@@ -104,7 +104,7 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 							user, calc, res.NTResponse,
 						)
 					}
-					w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password", h.Verbose, h.Logger))
 					return
 				}
 				if h.Verbose {
@@ -137,13 +137,13 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 				// MSCHAPv2
 				res := mschap.DecodeResponse2(attrs[vendor.MSCHAP2Response].Bytes())
 				if res.Flags != 0 {
-					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Flags should be set to 0"))
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Flags should be set to 0", h.Verbose, h.Logger))
 					return
 				}
 				enc, e := mschap.Encryptv2(challenge, res.PeerChallenge, user, limits.Pass)
 				if e != nil {
 					h.Logger.Printf("MSCHAPv2: " + e.Error())
-					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Server-side processing error"))
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAPv2: Server-side processing error", h.Verbose, h.Logger))
 					return
 				}
 				send, recv := mschap.Mmpev2(req.Secret(), limits.Pass, req.Auth, res.Response)
@@ -155,7 +155,7 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 							user, enc.ChallengeResponse, res.Response,
 						)
 					}
-					w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password"))
+					w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid password", h.Verbose, h.Logger))
 					return
 				}
 				if h.Verbose {
@@ -195,7 +195,7 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 				}.Encode())
 
 			} else {
-				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAP: Response1/2 not found"))
+				w.Write(radius.DefaultPacket(req, radius.AccessReject, "MSCHAP: Response1/2 not found", h.Verbose, h.Logger))
 				return
 			}
 		}
@@ -207,7 +207,7 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 		return
 	}
 	if conns >= limits.SimultaneousUse {
-		w.Write(radius.DefaultPacket(req, radius.AccessReject, "Max conns reached"))
+		w.Write(radius.DefaultPacket(req, radius.AccessReject, "Max conns reached", h.Verbose, h.Logger))
 		return
 	}
 
@@ -247,9 +247,9 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 		}
 
 		//reply = append(reply, radius.PubAttr{Type: radius.PortLimit, Value: radius.EncodeFour(limits.SimultaneousUse-conns)})
-		w.Write(req.Response(radius.AccessAccept, reply))
+		w.Write(req.Response(radius.AccessAccept, reply, h.Verbose, h.Logger))
 		return
 	}
 
-	w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid user/pass"))
+	w.Write(radius.DefaultPacket(req, radius.AccessReject, "Invalid user/pass", h.Verbose, h.Logger))
 }

@@ -55,7 +55,7 @@ func (h *Handler) AcctBegin(w io.Writer, req *radius.Packet) {
 		h.Logger.Printf("acct.begin e=%s", e.Error())
 		return
 	}
-	w.Write(req.Response(radius.AccountingResponse, reply))
+	w.Write(req.Response(radius.AccountingResponse, reply, h.Verbose, h.Logger))
 }
 
 func (h *Handler) AcctUpdate(w io.Writer, req *radius.Packet) {
@@ -78,7 +78,7 @@ func (h *Handler) AcctUpdate(w io.Writer, req *radius.Packet) {
 	}
 	queue.Queue(sess.User, sess.BytesIn, sess.BytesOut, sess.PacketsIn, sess.PacketsOut)
 
-	w.Write(radius.DefaultPacket(req, radius.AccountingResponse, "Updated accounting."))
+	w.Write(radius.DefaultPacket(req, radius.AccountingResponse, "Updated accounting.", h.Verbose, h.Logger))
 }
 
 func (h *Handler) AcctStop(w io.Writer, req *radius.Packet) {
@@ -119,5 +119,5 @@ func (h *Handler) AcctStop(w io.Writer, req *radius.Packet) {
 	}
 	queue.Queue(user, octIn, octOut, packIn, packOut)
 
-	w.Write(radius.DefaultPacket(req, radius.AccountingResponse, "Finished accounting."))
+	w.Write(radius.DefaultPacket(req, radius.AccountingResponse, "Finished accounting.", h.Verbose, h.Logger))
 }

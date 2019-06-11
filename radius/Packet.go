@@ -14,8 +14,7 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
-
-	"github.com/mpdroog/radiusd/config"
+	"log"
 )
 
 type Packet struct {
@@ -52,7 +51,7 @@ func (p *Packet) HasAttr(key AttributeType) bool {
 }
 
 // Decode bytes into packet
-func decode(buf []byte, n int, secret string) (*Packet, error) {
+func decode(buf []byte, n int, secret string, verbose bool, logger *log.Logger) (*Packet, error) {
 	p := &Packet{}
 	p.secret = secret
 	p.Code = PacketCode(buf[0])
@@ -76,14 +75,14 @@ func decode(buf []byte, n int, secret string) (*Packet, error) {
 
 		i = e
 	}
-	if config.Verbose {
-		config.Log.Printf("packet.receive: " + debug(p))
+	if verbose {
+		logger.Printf("packet.receive: " + debug(p))
 	}
 	return p, nil
 }
 
 // Encode packet into bytes
-func encode(p *Packet) []byte {
+func encode(p *Packet, verbose bool, logger *log.Logger) []byte {
 	b := make([]byte, 1024)
 	b[0] = uint8(p.Code)
 	b[1] = p.Identifier
@@ -107,18 +106,18 @@ func encode(p *Packet) []byte {
 
 	// Now set Len
 	binary.BigEndian.PutUint16(b[2:4], uint16(written))
-	if config.Verbose {
-		config.Log.Printf("packet.send: " + debug(p))
+	if verbose {
+		logger.Printf("packet.send: " + debug(p))
 	}
 	return b[:written]
 }
 
 // MessageAuthenticate if any
-func validate(p *Packet) bool {
+func validate(p *Packet, verbose bool, logger *log.Logger) bool {
 	if p.HasAttr(MessageAuthenticator) {
 		check := p.Attr(MessageAuthenticator)
 		h := md5.New()
-		temp := encode(p)
+		temp := encode(p, verbose, logger)
 		//h.Write(temp[0:4])
 		//h.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 		//h.Write(temp[20:])
@@ -133,7 +132,7 @@ func validate(p *Packet) bool {
 }
 
 // Create response packet
-func (p *Packet) Response(code PacketCode, attrs []AttrEncoder) []byte {
+func (p *Packet) Response(code PacketCode, attrs []AttrEncoder, verbose bool, logger *log.Logger) []byte {
 	n := &Packet{
 		Code:       code,
 		Identifier: p.Identifier,
@@ -148,7 +147,7 @@ func (p *Packet) Response(code PacketCode, attrs []AttrEncoder) []byte {
 	}
 
 	// Encode
-	r := encode(n)
+	r := encode(n, verbose, logger)
 
 	// Set right Response Authenticator
 	// MD5(Code+ID+Length+RequestAuth+Attributes+Secret)

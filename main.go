@@ -24,7 +24,7 @@ func listenAndServe(l config.Listener) {
 		panic(e)
 	}
 	config.Sock = append(config.Sock, conn)
-	if e := radius.Serve(conn, l.Secret, l.CIDR); e != nil {
+	if e := radius.Serve(conn, l.Secret, l.CIDR, config.Verbose, config.Log); e != nil {
 		if config.Stopping {
 			// Ignore close errors
 			return
@@ -77,7 +77,7 @@ func main() {
 	radius.HandleFunc(radius.AccountingRequest, 2, h.AcctStop)
 
 	go Control()
-	go sync.Loop(storage)
+	go sync.Loop(storage, config.Hostname, config.Verbose, config.Log)
 
 	wg = new(S.WaitGroup)
 	for _, listen := range config.C.Listen {
@@ -87,5 +87,5 @@ func main() {
 	wg.Wait()
 
 	// Write all stats
-	sync.Force(storage)
+	sync.Force(storage, config.Hostname, config.Verbose, config.Log)
 }

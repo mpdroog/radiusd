@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/binary"
+	"log"
 	"net"
 )
 
@@ -42,11 +43,14 @@ func DecryptPassword(raw []byte, p *Packet) string {
 }
 
 // Create a simple response.
-func DefaultPacket(p *Packet, code PacketCode, msg string) []byte {
+func DefaultPacket(p *Packet, code PacketCode, msg string, verbose bool, logger *log.Logger) []byte {
 	return p.Response(
-		code, []AttrEncoder{
+		code,
+		[]AttrEncoder{
 			NewAttr(ReplyMessage, []byte(msg), 0),
 		},
+		verbose,
+		logger,
 	)
 }
 
