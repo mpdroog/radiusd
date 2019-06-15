@@ -1,13 +1,5 @@
 package model
 
-import (
-	"database/sql"
-	"fmt"
-	"time"
-
-	"github.com/mpdroog/radiusd/config"
-)
-
 type User struct {
 	Pass            string
 	ActiveUntil     *string // Account active until YYYY-MM-DD
@@ -33,107 +25,22 @@ type UserLimits struct {
 	Exists bool
 }
 
-var ErrNoRows = sql.ErrNoRows
-
-func Begin() (*sql.Tx, error) {
-	return config.DB.Begin()
+func Auth(storage Storage, user string) (User, error) {
+	return storage.GetUser(user)
 }
 
-func Auth(user string) (User, error) {
-	u := User{}
-	e := config.DB.QueryRow(
-		`SELECT
-			pass,
-			block_remaining,
-			active_until,
-			1,
-			simultaneous_use,
-			dedicated_ip,
-			CONCAT(ratelimit_up, ratelimit_unit, '/', ratelimit_down, ratelimit_unit),
-			dns.one, dns.two
-		FROM
-			user
-		JOIN
-			product
-		ON
-			user.product_id = product.id
-		LEFT JOIN
-			dns
-		ON
-			user.dns_id = dns.id
-		WHERE
-			user = ?`,
-		user,
-	).Scan(
-		&u.Pass, &u.BlockRemain, &u.ActiveUntil, &u.Ok,
-		&u.SimultaneousUse, &u.DedicatedIP, &u.Ratelimit,
-		&u.DnsOne, &u.DnsTwo,
-	)
-	if e == config.ErrNoRows {
-		return u, nil
-	}
-	return u, e
+func Conns(storage Storage, user string) (uint32, error) {
+	count, err := storage.CountSessions(user)
+	return uint32(count), err
 }
 
-func Conns(user string) (uint32, error) {
-	var count uint32 = 0
-	e := config.DB.QueryRow(
-		`SELECT
-			COUNT(*)
-		FROM
-			session
-		WHERE
-			user = ?`,
-		user,
-	).Scan(&count)
-	return count, e
+func Limits(storage Storage, user string) (UserLimits, error) {
+	return storage.GetLimits(user)
 }
 
-func Limits(user string) (UserLimits, error) {
-	u := UserLimits{}
-	e := config.DB.QueryRow(
-		`SELECT
-			1
-		FROM
-			user
-		JOIN
-			product
-		ON
-			user.product_id = product.id
-		WHERE
-			user = ?`,
-		user,
-	).Scan(&u.Exists)
-	return u, e
-}
-
-func affectCheck(res sql.Result, expect int64, errMsg error) error {
-	affect, e := res.RowsAffected()
+func SessionAdd(storage Storage, sessionId, user, nasIp, assignedIp, clientIp string) error {
+	exists, e := storage.IsSessionExists(user, sessionId, nasIp)
 	if e != nil {
-		return e
-	}
-	if affect != expect {
-		return errMsg
-	}
-	return nil
-}
-
-func SessionAdd(sessionId, user, nasIp, assignedIp, clientIp string) error {
-	exists := false
-	e := config.DB.QueryRow(
-		`SELECT
-			1
-		FROM
-			session
-		WHERE
-			user = ?
-		AND
-			session_id = ?
-		AND
-			nas_ip = ?`,
-		user, sessionId, nasIp,
-	).Scan(&exists)
-	if e != nil && e != sql.ErrNoRows {
 		return e
 	}
 	if exists {
@@ -141,101 +48,27 @@ func SessionAdd(sessionId, user, nasIp, assignedIp, clientIp string) error {
 		return nil
 	}
 
-	res, e := config.DB.Exec(
-		`INSERT INTO
-			session
-		(session_id, user, time_added, nas_ip, assigned_ip, client_ip, bytes_in, bytes_out, packets_in, packets_out, session_time)
-		VALUES
-		(?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0)`,
-		sessionId, user, time.Now().Unix(), nasIp, assignedIp, clientIp,
-	)
-	if e != nil {
-		return e
-	}
-	return affectCheck(res, 1, fmt.Errorf(
-		"session.add fail for sess=%s user=%s",
-		sessionId, user,
-	))
+	return storage.CreateSession(user, sessionId, nasIp, assignedIp, clientIp)
 }
 
-func SessionUpdate(txn *sql.Tx, s Session) error {
-	res, e := txn.Exec(
-		`UPDATE
-			session
-		SET
-			bytes_in = bytes_in + ?,
-			bytes_out = bytes_out + ?,
-			packets_in = packets_in + ?,
-			packets_out = packets_out + ?,
-			session_time = ?
-		WHERE
-			session_id = ?
-		AND
-			user = ?
-		AND
-			nas_ip = ?`,
-		s.BytesIn, s.BytesOut, s.PacketsIn, s.PacketsOut, s.SessionTime,
-		s.SessionID, s.User, s.NasIP,
+func SessionUpdate(storage Storage, s Session) error {
+	return storage.UpdateSession(
+		s.User,
+		s.SessionID,
+		s.NasIP,
+		int(s.BytesIn),
+		int(s.BytesOut),
+		int(s.PacketsIn),
+		int(s.PacketsOut),
+		int(s.SessionTime),
 	)
-	if e != nil {
-		return e
-	}
-	return affectCheck(res, 1, fmt.Errorf(
-		"session.update fail for sess=%s user=%s",
-		s.SessionID, s.User,
-	))
-
 }
 
-func SessionRemove(txn *sql.Tx, sessionId, user, nasIp string) error {
-	res, e := txn.Exec(
-		`DELETE FROM
-			session
-		WHERE
-			session_id = ?
-		AND
-			user = ?
-		AND
-			nas_ip = ?`,
-		sessionId, user, nasIp,
-	)
-	if e != nil {
-		return e
-	}
-	return affectCheck(res, 1, fmt.Errorf(
-		"session.remove fail for sess=%s",
-		sessionId,
-	))
-	return nil
+func SessionRemove(storage Storage, sessionId, user, nasIp string) error {
+	return storage.FinishSession(user, sessionId, nasIp)
 }
 
 // Copy session to log
-func SessionLog(txn *sql.Tx, sessionId string, user string, nasIp string) error {
-	res, e := txn.Exec(
-		`INSERT INTO
-			session_log
-			(assigned_ip, bytes_in, bytes_out, client_ip,
-			nas_ip, packets_in, packets_out, session_id,
-			session_time, user, time_added)
-		SELECT
-			assigned_ip, bytes_in, bytes_out, client_ip,
-			nas_ip, packets_in, packets_out, session_id,
-			session_time, user, time_added
-		FROM
-			session
-		WHERE
-			session_id = ?
-		AND
-			user = ?
-		AND
-			nas_ip = ?`,
-		sessionId, user, nasIp,
-	)
-	if e != nil {
-		return e
-	}
-	return affectCheck(res, 1, fmt.Errorf(
-		"session.log fail for sess=%s",
-		sessionId,
-	))
+func SessionLog(storage Storage, sessionId string, user string, nasIp string) error {
+	return storage.ArchiveSession(user, sessionId, nasIp)
 }

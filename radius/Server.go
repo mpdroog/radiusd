@@ -6,9 +6,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
-
-	"github.com/mpdroog/radiusd/config"
 )
 
 var handlers map[string]func(io.Writer, *Packet)
@@ -33,7 +32,7 @@ func Listen(addr string) (*net.UDPConn, error) {
 	return net.ListenUDP("udp", udpAddr)
 }
 
-func Serve(conn *net.UDPConn, secret string, cidrs []string) error {
+func Serve(conn *net.UDPConn, secret string, cidrs []string, verbose bool, logger *log.Logger) error {
 	var whitelist []*net.IPNet
 
 	for _, cidr := range cidrs {
@@ -60,19 +59,19 @@ func Serve(conn *net.UDPConn, secret string, cidrs []string) error {
 			}
 		}
 		if !ok {
-			config.Log.Printf("Request dropped for invalid IP=" + client.String())
+			logger.Printf("Request dropped for invalid IP=" + client.String())
 			continue
 		}
 
-		if config.Debug {
-			config.Log.Printf("raw.recv: %+v", buf[:n])
+		if verbose {
+			logger.Printf("raw.recv: %+v", buf[:n])
 		}
-		p, e := decode(buf, n, secret)
+		p, e := decode(buf, n, secret, verbose, logger)
 		if e != nil {
 			// TODO: Silently ignore decode?
 			return e
 		}
-		if !validate(p) {
+		if !validate(p, verbose, logger) {
 			// TODO: Silently ignore invalidate package?
 			return fmt.Errorf("Invalid MessageAuthenticator")
 		}
@@ -87,8 +86,8 @@ func Serve(conn *net.UDPConn, secret string, cidrs []string) error {
 		handle, ok := handlers[key]
 		if ok {
 			handle(readBuf, p)
-			if config.Debug {
-				config.Log.Printf("raw.send: %+v", readBuf.Bytes())
+			if verbose {
+				logger.Printf("raw.send: %+v", readBuf.Bytes())
 			}
 			if len(readBuf.Bytes()) != 0 {
 				// Only send a packet if we got anything
