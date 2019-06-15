@@ -42,6 +42,11 @@ func NewMySQL(dsn string) (*MySQL, error) {
 	return &MySQL{DB: db}, nil
 }
 
+func (s *MySQL) Strict() (err error) {
+	_, err = s.DB.Exec(`SET SESSION sql_mode = 'TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,NO_BACKSLASH_ESCAPES'`)
+	return err
+}
+
 func (s *MySQL) GetUser(name string) (user model.User, err error) {
 	err = s.DB.QueryRow(selectUser, name).Scan(
 		&user.Pass,

@@ -1,4 +1,4 @@
-Dsn = "user:password@/dbname?strict=true&charset=utf8mb4,utf8"
+Dsn = "user:password@/dbname?charset=utf8mb4,utf8"
 ControlListen="127.0.0.1:8124"
 
 [listen]

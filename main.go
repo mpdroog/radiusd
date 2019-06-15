@@ -65,6 +65,9 @@ func main() {
 	if e != nil {
 		panic(e)
 	}
+	if e := storage.Strict(); e != nil {
+		panic(e)
+	}
 
 	h := &handlers.Handler{
 		Storage: storage,
