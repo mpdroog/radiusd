@@ -5,7 +5,9 @@ import (
 	S "sync"
 
 	"github.com/mpdroog/radiusd/config"
+	"github.com/mpdroog/radiusd/handlers"
 	"github.com/mpdroog/radiusd/radius"
+	"github.com/mpdroog/radiusd/storage"
 	"github.com/mpdroog/radiusd/sync"
 )
 
@@ -22,7 +24,7 @@ func listenAndServe(l config.Listener) {
 		panic(e)
 	}
 	config.Sock = append(config.Sock, conn)
-	if e := radius.Serve(conn, l.Secret, l.CIDR); e != nil {
+	if e := radius.Serve(conn, l.Secret, l.CIDR, config.Verbose, config.Log); e != nil {
 		if config.Stopping {
 			// Ignore close errors
 			return
@@ -39,9 +41,6 @@ func main() {
 	flag.Parse()
 
 	if e := config.Init(configPath); e != nil {
-		panic(e)
-	}
-	if e := sync.Init(); e != nil {
 		panic(e)
 	}
 	if config.Verbose {
@@ -61,13 +60,24 @@ func main() {
 	    9-14   Reserved for Tunnel Accounting
 	   15      Reserved for Failed
 	*/
-	radius.HandleFunc(radius.AccessRequest, 0, auth)
-	radius.HandleFunc(radius.AccountingRequest, 1, acctBegin)
-	radius.HandleFunc(radius.AccountingRequest, 3, acctUpdate)
-	radius.HandleFunc(radius.AccountingRequest, 2, acctStop)
+
+	storage, e := storage.NewMySQL(config.C.Dsn)
+	if e != nil {
+		panic(e)
+	}
+
+	h := &handlers.Handler{
+		Storage: storage,
+		Logger:  config.Log,
+		Verbose: config.Verbose,
+	}
+	radius.HandleFunc(radius.AccessRequest, 0, h.Auth)
+	radius.HandleFunc(radius.AccountingRequest, 1, h.AcctBegin)
+	radius.HandleFunc(radius.AccountingRequest, 3, h.AcctUpdate)
+	radius.HandleFunc(radius.AccountingRequest, 2, h.AcctStop)
 
 	go Control()
-	go sync.Loop()
+	go sync.Loop(storage, config.Hostname, config.Verbose, config.Log)
 
 	wg = new(S.WaitGroup)
 	for _, listen := range config.C.Listen {
@@ -77,5 +87,5 @@ func main() {
 	wg.Wait()
 
 	// Write all stats
-	sync.Force()
+	sync.Force(storage, config.Hostname, config.Verbose, config.Log)
 }
