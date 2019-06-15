@@ -2,9 +2,10 @@ package sync
 
 import (
 	"math/rand"
-	"radiusd/config"
-	"radiusd/queue"
 	"time"
+
+	"github.com/mpdroog/radiusd/config"
+	"github.com/mpdroog/radiusd/queue"
 )
 
 func save() {

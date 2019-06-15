@@ -1,23 +1,24 @@
 package radius
 
 import (
-	"radiusd/radius/vendor"
 	"encoding/binary"
+
+	"github.com/mpdroog/radiusd/radius/vendor"
 )
 
 type VendorAttrString struct {
-	Type vendor.AttributeType
+	Type  vendor.AttributeType
 	Value []byte
 }
 
 type VendorAttr struct {
-	Type AttributeType
+	Type     AttributeType
 	VendorId uint32
-	Values []VendorAttrString
+	Values   []VendorAttrString
 }
 
 type VendorHeader struct {
-	VendorId uint32
+	VendorId   uint32
 	VendorType uint8
 }
 
@@ -31,8 +32,8 @@ func (t VendorAttr) Encode() AttrEncoder {
 		raw := []byte(value.Value)
 
 		b := make([]byte, 2+len(raw))
-		b[0] = uint8(value.Type) // vendor type
-		b[1] = uint8(2+len(raw)) // vendor length
+		b[0] = uint8(value.Type)   // vendor type
+		b[1] = uint8(2 + len(raw)) // vendor length
 		copy(b[2:], raw)
 		//sum += 2+len(raw)
 		val = append(val, b...)
@@ -43,7 +44,7 @@ func (t VendorAttr) Encode() AttrEncoder {
 
 func VendorSpecificHeader(b []byte) VendorHeader {
 	return VendorHeader{
-		VendorId: binary.BigEndian.Uint32(b[0:4]),
+		VendorId:   binary.BigEndian.Uint32(b[0:4]),
 		VendorType: b[4],
 	}
 }

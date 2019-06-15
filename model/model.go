@@ -1,17 +1,18 @@
 package model
 
 import (
-	"fmt"
-	"radiusd/config"
-	"time"
 	"database/sql"
+	"fmt"
+	"time"
+
+	"github.com/mpdroog/radiusd/config"
 )
 
 type User struct {
 	Pass            string
 	ActiveUntil     *string // Account active until YYYY-MM-DD
 	BlockRemain     *int64  // Remaining bandwidth
-	SimultaneousUse uint32 // Max conns allowed
+	SimultaneousUse uint32  // Max conns allowed
 	DedicatedIP     *string
 	Ratelimit       *string
 	DnsOne          *string
@@ -75,7 +76,7 @@ func Auth(user string) (User, error) {
 }
 
 func Conns(user string) (uint32, error) {
-	var count uint32 = 0;
+	var count uint32 = 0
 	e := config.DB.QueryRow(
 		`SELECT
 			COUNT(*)

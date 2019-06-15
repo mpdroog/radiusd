@@ -2,9 +2,9 @@
 package mschap
 
 import (
-	"testing"
 	"bytes"
 	"fmt"
+	"testing"
 )
 
 func TestLmPasswordHash(t *testing.T) {

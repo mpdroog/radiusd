@@ -1,0 +1,18 @@
+# github.com/BurntSushi/toml v0.3.1
+github.com/BurntSushi/toml
+# github.com/go-sql-driver/mysql v1.4.1
+github.com/go-sql-driver/mysql
+# github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef
+github.com/golang/groupcache/lru
+# github.com/itshosted/mcore v0.0.0-20151215094434-9aa9c3bf18f3
+github.com/itshosted/mcore/log
+# github.com/itshosted/webutils v0.0.0-20170612142013-a5ff3b14b30a
+github.com/itshosted/webutils/httpd
+github.com/itshosted/webutils/middleware
+github.com/itshosted/webutils/muxdoc
+github.com/itshosted/webutils/ratelimit
+github.com/itshosted/webutils/ratelimit/bucket
+# golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
+golang.org/x/crypto/md4
+# google.golang.org/appengine v1.6.1
+google.golang.org/appengine/cloudsql

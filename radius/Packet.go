@@ -13,8 +13,9 @@ import (
 	"crypto/hmac"
 	"crypto/md5"
 	"encoding/binary"
-	"radiusd/config"
 	"fmt"
+
+	"github.com/mpdroog/radiusd/config"
 )
 
 type Packet struct {
@@ -23,12 +24,13 @@ type Packet struct {
 	Identifier uint8
 	Len        uint16
 	Auth       []byte // Request Authenticator
-	Attrs   []AttrEncoder
+	Attrs      []AttrEncoder
 }
 
 func (p *Packet) Secret() string {
 	return p.secret
 }
+
 // Get first packet by key
 func (p *Packet) Attr(key AttributeType) []byte {
 	for _, a := range p.Attrs {
@@ -38,6 +40,7 @@ func (p *Packet) Attr(key AttributeType) []byte {
 	}
 	panic(fmt.Sprintf("No such key %s", key.String()))
 }
+
 // If requested attribute exists
 func (p *Packet) HasAttr(key AttributeType) bool {
 	for _, a := range p.Attrs {
@@ -140,7 +143,7 @@ func (p *Packet) Response(code PacketCode, attrs []AttrEncoder) []byte {
 	}
 
 	for _, attr := range attrs {
-		msg := NewAttr(attr.Type(), attr.Bytes(), uint8(2 + len(attr.Bytes())))
+		msg := NewAttr(attr.Type(), attr.Bytes(), uint8(2+len(attr.Bytes())))
 		n.Attrs = append(n.Attrs, msg)
 	}
 

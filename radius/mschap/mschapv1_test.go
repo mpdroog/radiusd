@@ -2,9 +2,9 @@
 package mschap
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
-	"bytes"
 )
 
 func TestNTPassword(t *testing.T) {
@@ -52,7 +52,7 @@ func TestEncryptMSCHAP1(t *testing.T) {
  radclient test.
  MS-CHAP-Challenge = 0x15516e769584c6d8
  MS-CHAP-Response = 0x00010000000000000000000000000000000000000000000000003a3c9f1c7da79174dc167532d360ab5efd01853173c8214e
- */
+*/
 func TestRadclientEncrypt(t *testing.T) {
 	challenge := []byte{0x15, 0x51, 0x6e, 0x76, 0x95, 0x84, 0xc6, 0xd8}
 	expect := []byte{
@@ -72,7 +72,7 @@ func TestRadclientEncrypt(t *testing.T) {
 
 /*
  osx test
- */
+*/
 func TestOSXEncrypt(t *testing.T) {
 	challenge := []byte{94, 248, 116, 139, 0, 127, 216, 249}
 	expect := []byte{
