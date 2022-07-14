@@ -73,6 +73,7 @@ func main() {
 		Storage: storage,
 		Logger:  config.Log,
 		Verbose: config.Verbose,
+		State:   make(map[string]handlers.State, 1024), // start with 1024 size
 	}
 	radius.HandleFunc(radius.AccessRequest, 0, h.Auth)
 	radius.HandleFunc(radius.AccountingRequest, 1, h.AcctBegin)
