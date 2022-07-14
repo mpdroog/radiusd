@@ -5,6 +5,8 @@ package eap
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/mpdroog/radiusd/radius/eap/pwd"
+	"log"
 )
 
 type EapCode uint8
@@ -21,39 +23,66 @@ const (
 const (
 	Identity  EapType = 1
 	LegacyNak EapType = 3
-	Peap      EapType = 25
-	MsChapv2  EapType = 26
-	TLV       EapType = 33
 	TLS       EapType = 13
+	Peap      EapType = 25
+	MSChapv2  EapType = 26
+	TLV       EapType = 33
+	EAPpwd    EapType = 52
 )
 
 type EAPPacket struct {
-	code    EapCode
-	id      uint8
-	length  uint16
-	msgType EapType
+	Code    EapCode
+	ID      uint8
+	Length  uint16
+	MsgType EapType
 
-	PayloadIdentity string
+	PayloadIdentity string // Only used for decoding
+	PWD             *pwd.PWD
+	Data            []byte // Used for encoding
 }
 
 func Decode(b []byte) (*EAPPacket, error) {
 	p := new(EAPPacket)
-	p.code = EapCode(b[0])
-	p.id = uint8(b[1])
-	p.length = binary.BigEndian.Uint16(b[2:])
+	p.Code = EapCode(b[0])
+	p.ID = uint8(b[1])
+	p.Length = binary.BigEndian.Uint16(b[2:])
 
-	if p.length != uint16(len(b)) {
+	if p.Length != uint16(len(b)) {
 		return nil, fmt.Errorf("EAP packet.length invalid")
 	}
 
-	if len(b) > 4 && (p.code == EAPRequest || p.code == EAPResponse) {
-		p.msgType = EapType(b[4])
+	if len(b) > 4 && (p.Code == EAPRequest || p.Code == EAPResponse) {
+		p.MsgType = EapType(b[4])
 	}
 
-	if p.msgType != Identity {
-		return nil, fmt.Errorf("EAP only supports Identity-auth")
+	if p.MsgType == Identity {
+		p.PayloadIdentity = string(b[5:])
+	} else if p.MsgType == EAPpwd {
+		p.PWD = pwd.Decode(b[5:p.Length]) // pre-calc length so we can be lazy in pwd-pkg
+	} else {
+		p.Data = b[5:]
 	}
 
-	p.PayloadIdentity = string(b[5:])
 	return p, nil
+}
+
+func Encode(p *EAPPacket, verbose bool, logger *log.Logger) ([]byte, error) {
+	b := make([]byte, 1024)
+	b[0] = uint8(p.Code)
+	b[1] = uint8(p.ID)
+	// Skip Len for now, as we don't know this yet (pos 2+3)
+	b[4] = uint8(p.MsgType)
+
+	aLen := len(p.Data) + 2 // add type+len fields
+	if aLen > 255 || aLen < 2 {
+		panic("Value too big for attr")
+	}
+	copy(b[5:], p.Data)
+
+	// Now set Len (magic 5 is positions 0 to 4)
+	binary.BigEndian.PutUint16(b[2:4], uint16(aLen+5))
+	if verbose {
+		logger.Printf("packet.send: %+v\n", p)
+	}
+	return b[:aLen+5], nil
 }
