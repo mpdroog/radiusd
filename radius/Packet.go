@@ -17,6 +17,11 @@ import (
 	"log"
 )
 
+type AttrPos struct {
+	Begin int
+	End int
+}
+
 type Packet struct {
 	secret     string // shared secret
 	Code       PacketCode
@@ -82,24 +87,36 @@ func decode(buf []byte, n int, secret string, verbose bool, logger *log.Logger) 
 }
 
 // Encode packet into bytes
-func encode(p *Packet, verbose bool, logger *log.Logger) []byte {
+func encode(p *Packet, verbose bool, logger *log.Logger) ([]byte, map[AttributeType]AttrPos) {
 	b := make([]byte, 1024)
 	b[0] = uint8(p.Code)
 	b[1] = p.Identifier
-	// Skip Len for now 2+3
+	// Set Len after we got length data (pos 2+3)
 	copy(b[4:20], p.Auth)
 	written := 20
 
+	pos := make(map[AttributeType]AttrPos)
 	bb := b[20:]
 	for _, attr := range p.Attrs {
 		aLen := len(attr.Bytes()) + 2 // add type+len fields
 		if aLen > 255 || aLen < 2 {
 			panic("Value too big for attr")
 		}
+
 		bb[0] = uint8(attr.Type())
 		bb[1] = uint8(aLen)
-		copy(bb[2:], attr.Bytes())
 
+		if attr.Type() == MessageAuthenticator {
+			// Nullify MessageAuthenticator so we can calc it later on
+			fmt.Printf("Nullify=%s\n", MessageAuthenticator)
+			for i := 0; i < aLen; i++ {
+				bb[2+i] = 0
+			}
+		} else {
+			copy(bb[2:], attr.Bytes())
+		}
+
+		pos[attr.Type()] = AttrPos{Begin: written, End: written+aLen}
 		written += aLen
 		bb = bb[aLen:]
 	}
@@ -109,22 +126,25 @@ func encode(p *Packet, verbose bool, logger *log.Logger) []byte {
 	if verbose {
 		logger.Printf("packet.send: " + debug(p))
 	}
-	return b[:written]
+	return b[:written], pos
 }
 
 // MessageAuthenticate if any
 func validate(p *Packet, verbose bool, logger *log.Logger) bool {
+	// Message-Authenticator = HMAC-MD5 (Type, Identifier, Length, Request Authenticator, Attributes)
+	// https://w1.fi/cgit/hostap/tree/src/radius/radius.c#n456
 	if p.HasAttr(MessageAuthenticator) {
 		check := p.Attr(MessageAuthenticator)
-		h := md5.New()
-		temp := encode(p, verbose, logger)
-		//h.Write(temp[0:4])
-		//h.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
-		//h.Write(temp[20:])
+		temp, _ := encode(p, verbose, logger)
+
+		h := hmac.New(md5.New, []byte(p.secret))
 		h.Write(temp)
-		h.Write([]byte(p.secret))
+		if verbose {
+			logger.Printf("packet.reconstruct: %+v", temp)
+		}
 
 		if !hmac.Equal(check, h.Sum(nil)) {
+			logger.Printf("MessageAuthenticator mismatch a=%x b=%x", check, h.Sum(nil))
 			return false
 		}
 	}
@@ -142,20 +162,31 @@ func (p *Packet) Response(code PacketCode, attrs []AttrEncoder, verbose bool, lo
 	}
 
 	for _, attr := range attrs {
+		// TODO: Double object creation?
 		msg := NewAttr(attr.Type(), attr.Bytes(), uint8(2+len(attr.Bytes())))
 		n.Attrs = append(n.Attrs, msg)
 	}
 
 	// Encode
-	r := encode(n, verbose, logger)
+	r, pos := encode(n, verbose, logger)
 
 	// Set right Response Authenticator
-	// MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
-	h := md5.New()
-	h.Write(r)
-	h.Write([]byte(p.secret))
-	res := h.Sum(nil)[:16]
-	copy(r[4:20], res)
+	{
+		// MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
+		h := md5.New()
+		h.Write(r)
+		h.Write([]byte(p.secret))
+		res := h.Sum(nil)[:16]
+		copy(r[4:20], res)
+	}
 
+	// MessageAuthenticator
+	// TODO: Use attrs to enable?
+	if _, ok := pos[MessageAuthenticator]; ok {
+		off := pos[MessageAuthenticator]
+		h := hmac.New(md5.New, []byte(p.secret))
+		h.Write(r)
+		copy(r[off.Begin:off.End], h.Sum(nil))
+	}
 	return r
 }
