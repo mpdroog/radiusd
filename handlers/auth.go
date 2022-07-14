@@ -7,6 +7,7 @@ import (
 
 	"github.com/mpdroog/radiusd/model"
 	"github.com/mpdroog/radiusd/radius"
+	"github.com/mpdroog/radiusd/radius/eap"
 	"github.com/mpdroog/radiusd/radius/mschap"
 	"github.com/mpdroog/radiusd/radius/vendor"
 )
@@ -17,6 +18,38 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 		return
 	}
 	reply := []radius.AttrEncoder{}
+
+	if req.HasAttr(radius.EAPMessage) {
+		// EAP-decode
+		p, e := eap.Decode(req.Attr(radius.EAPMessage))
+		if e != nil {
+			h.Logger.Printf("auth.eapDecode e=" + e.Error())
+			return
+		}
+		h.Logger.Printf("EAPPacket=%+v", p)
+
+		user := p.PayloadIdentity
+		limits, e := model.Auth(h.Storage, user)
+		if e != nil {
+			h.Logger.Printf("auth.begin e=" + e.Error())
+			return
+		}
+		if limits.Pass == "" {
+			w.Write(radius.DefaultPacket(req, radius.AccessReject, "No such user", h.Verbose, h.Logger))
+			return
+		}
+
+		// Add current MessageAuthenticator
+		curAuth := req.Attr(radius.MessageAuthenticator)
+		curMsg := req.Attr(radius.EAPMessage)
+		reply = append(reply,
+			radius.NewAttr(radius.EAPMessage, curMsg, uint8(2+len(curMsg))),
+			radius.NewAttr(radius.MessageAuthenticator, curAuth, uint8(2+len(curAuth)),
+		))
+
+		w.Write(req.Response(radius.AccessChallenge, reply, h.Verbose, h.Logger))
+		return
+	}
 
 	user := string(req.Attr(radius.UserName))
 	limits, e := model.Auth(h.Storage, user)
