@@ -170,6 +170,14 @@ func (p *Packet) Response(code PacketCode, attrs []AttrEncoder, verbose bool, lo
 	// Encode
 	r, pos := encode(n, verbose, logger)
 
+	// MessageAuthenticator
+	if _, ok := pos[MessageAuthenticator]; ok {
+		off := pos[MessageAuthenticator]
+		h := hmac.New(md5.New, []byte(p.secret))
+		h.Write(r)
+		copy(r[off.Begin+2:off.End], h.Sum(nil)[:16])
+	}
+
 	// Set right Response Authenticator
 	{
 		// MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
@@ -178,15 +186,6 @@ func (p *Packet) Response(code PacketCode, attrs []AttrEncoder, verbose bool, lo
 		h.Write([]byte(p.secret))
 		res := h.Sum(nil)[:16]
 		copy(r[4:20], res)
-	}
-
-	// MessageAuthenticator
-	// TODO: Use attrs to enable?
-	if _, ok := pos[MessageAuthenticator]; ok {
-		off := pos[MessageAuthenticator]
-		h := hmac.New(md5.New, []byte(p.secret))
-		h.Write(r)
-		copy(r[off.Begin:off.End], h.Sum(nil))
 	}
 	return r
 }
