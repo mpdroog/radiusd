@@ -60,22 +60,22 @@ func ValidateAuthRequest(p *Packet) string {
 		return "UserName missing"
 	}
 
-	// It MUST contain either a NAS-IP-Address attribute or a NAS-Identifier
-	// attribute (or both).
-	if !p.HasAttr(NASIPAddress) {
-		return "NasIPAddress missing"
-	}
-	if !p.HasAttr(NASIdentifier) {
-		return "NasIdentifier missing"
+	// either NAS-Identifier, NAS-IP-Address or NAS-IPv6-Address attributes MUST be included
+	// TODO: NAS-IPv6-Address
+	if !p.HasAttr(NASIPAddress) && !p.HasAttr(NASIdentifier) {
+		return "MUST contain either NasIPAddress, NasIdentifier"
 	}
 
 	// An Access-Request MUST contain either a User-Password or a CHAP-
 	// Password or a State.  An Access-Request MUST NOT contain both a
 	// User-Password and a CHAP-Password.
+	// TODO: Missing ARAP-Password implemented?
 	if !p.HasAttr(UserPassword) {
 		if !p.HasAttr(CHAPPassword) {
 			if !p.HasAttr(VendorSpecific) {
-				return "UserPassword/CHAP-Password/VendorSpeficic missing"
+				if !p.HasAttr(EAPMessage) {
+					return "UserPassword/CHAP-Password/VendorSpeficic/EAPMessage missing"
+				}
 			}
 		}
 	}
@@ -84,12 +84,12 @@ func ValidateAuthRequest(p *Packet) string {
 	// attribute or both unless the type of access being requested does
 	// not involve a port or the NAS does not distinguish among its
 	// ports.
-	if !p.HasAttr(NASPort) {
+	/* if !p.HasAttr(NASPort) {
 		return "NASPort missing"
 	}
 	if !p.HasAttr(NASPortType) {
 		return "NASPortType missing"
-	}
+	}*/
 
 	// All OK
 	return ""
