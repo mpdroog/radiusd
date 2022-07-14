@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net"
+	"time"
 
 	"github.com/mpdroog/radiusd/model"
 	"github.com/mpdroog/radiusd/radius"
@@ -34,21 +35,30 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 			// TODO: eap logic:
 			// State (radius) + Id (eap, where id keeps +1 on every reply)
 			// also store remote id to check we miss nothing?
+			stateID, e := GenRand(16)
+			if e != nil {
+				h.Logger.Printf("auth.genRand(16) e=" + e.Error())
+				return
+			}
+			if _, used := h.State[string(stateID)]; used {
+				panic("DevErr: stateID already used")
+			}
+			stateToken := randToken()
 
 			// Instruct we want EAP-PWD-ID
 			eapBin, e := eap.Encode(&eap.EAPPacket{
 				Code: eap.EAPRequest,
-				ID: 1, // TODO: state?
+				ID: 240,
 				MsgType: eap.EAPpwd,
-				PWD: &pwd.PWD{
+				Data: pwd.Encode(&pwd.PWD{
 					LMPWD: pwd.DefaultLMPWD,
 					GroupDesc: 19,
 					RandomFunc: pwd.DefaultRandomFunc,
 					PRF: pwd.PRFHMACSHA256,
-					Token: 100, // todo: random?
+					Token: stateToken,
 					Prep: pwd.PrepNone,
 					Identity: "radius@rootdev.nl", // todo: config?
-				},
+				}),
 			}, h.Verbose, h.Logger)
 			if e != nil {
 				h.Logger.Printf("auth.begin(eapEncode) e=" + e.Error())
@@ -60,14 +70,25 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 			reply = append(reply,
 				radius.NewAttr(radius.EAPMessage, eapBin, uint8(2+len(eapBin))),
 				radius.NewAttr(radius.MessageAuthenticator, curAuth, uint8(2+len(curAuth))),
-				radius.NewAttr(radius.State, []byte{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 18), // TODO: State?
+				radius.NewAttr(radius.State, stateID, uint8(2+16)),
 			)
-
 			w.Write(req.Response(radius.AccessChallenge, reply, h.Verbose, h.Logger))
+			h.State[string(stateID)] = State{
+				LastID: 240,
+				Token: stateToken,
+				Added: time.Now(),
+				RemoteID: p.ID,
+			}
 			return
 		}
 		if p.MsgType == eap.EAPpwd {
 			// EAP-PWD
+			state, ok := h.State[string(req.Attr(radius.State))]
+			if !ok {
+				h.Logger.Printf("auth.begin(getState) nothing found")
+				return
+			}
+
 			user := p.PWD.Identity
 			limits, e := model.Auth(h.Storage, user)
 			if e != nil {
@@ -77,7 +98,7 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 			if limits.Pass == "" {
 				eapBin, e := eap.Encode(&eap.EAPPacket{
 					Code: eap.EAPFailure,
-					ID: 49,
+					ID: state.LastID+1,
 				}, h.Verbose, h.Logger)
 				if e != nil {
 					h.Logger.Printf("auth.begin(eapEncode) e=" + e.Error())
@@ -87,10 +108,11 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 				reply = append(reply,
 					radius.NewAttr(radius.EAPMessage, eapBin, uint8(2+len(eapBin))),
 					radius.NewAttr(radius.MessageAuthenticator, curAuth, uint8(2+len(curAuth))),
-					radius.NewAttr(radius.State, []byte{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 18), // TODO: State?
+					radius.NewAttr(radius.State, req.Attr(radius.State), 18),
 				)
 
 				w.Write(req.Response(radius.AccessReject, reply, h.Verbose, h.Logger))
+				state.LastID++
 				return
 			}
 
