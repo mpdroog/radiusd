@@ -7,6 +7,32 @@ import (
 )
 
 // TODO: MsgType == Identity
+func TestDecodeEAPIdentity(t *testing.T) {
+	bin := []byte{0x02,0x2f,0x00,0x0a,0x01,0x73,0x74,0x65,0x76,0x65}
+	p, e := Decode(bin)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if testing.Verbose() {
+		fmt.Printf("eap.Identity=%+v\n", p)
+	}
+
+	if p.Code != EAPResponse {
+		t.Errorf("packet.Code not EAPResponse")
+	}
+	if p.ID != 47 {
+		t.Errorf("packet.ID not valid")
+	}
+	if p.Length != 10 {
+		t.Errorf("packet.Length not valid")
+	}
+	if p.MsgType != Identity {
+		t.Errorf("packet.MsgType not valid")
+	}
+	if p.PayloadIdentity != "steve" {
+		t.Errorf("packet.PayloadIdentity not valid")
+	}
+}
 
 func TestDecodeEAPPwd(t *testing.T) {
 	// Datadump collect with Wireshark and freeradius-server
