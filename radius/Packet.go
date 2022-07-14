@@ -108,8 +108,7 @@ func encode(p *Packet, verbose bool, logger *log.Logger) ([]byte, map[AttributeT
 
 		if attr.Type() == MessageAuthenticator {
 			// Nullify MessageAuthenticator so we can calc it later on
-			fmt.Printf("Nullify=%s\n", MessageAuthenticator)
-			for i := 0; i < aLen; i++ {
+			for i := 0; i < aLen-2; i++ {
 				bb[2+i] = 0
 			}
 		} else {
@@ -119,6 +118,10 @@ func encode(p *Packet, verbose bool, logger *log.Logger) ([]byte, map[AttributeT
 		pos[attr.Type()] = AttrPos{Begin: written, End: written+aLen}
 		written += aLen
 		bb = bb[aLen:]
+	}
+
+	if written > 255 {
+		panic("Packet too big?")
 	}
 
 	// Now set Len
