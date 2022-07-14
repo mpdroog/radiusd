@@ -11,6 +11,8 @@ type PWDExch uint8
 type PrepTechnique uint8
 
 const (
+	DefaultLMPWD       uint8 = 1
+
 	Reserved           PWDExch = 0
 	PWDIDExchange      PWDExch = 1
 	PWDCommitExchange  PWDExch = 2
@@ -57,6 +59,7 @@ func (p *PWD) IsMBitSet() bool {
 	// L=01000000(2)=64(10)
 	return (p.LMPWD & 64) == 1
 }
+
 func Decode(buf []byte) *PWD {
 	p := &PWD{}
 	p.LMPWD = buf[0]
@@ -86,4 +89,19 @@ func Decode(buf []byte) *PWD {
 	}
 
 	return p
+}
+func Encode(p *PWD) ([]byte) {
+	b := make([]byte, 1024)
+	b[0] = p.LMPWD
+	if p.IsLBitSet() || p.IsMBitSet() {
+		panic("L+M bits unsupported")
+	}
+	binary.BigEndian.PutUint16(b[1:3], p.GroupDesc)
+	b[3] = p.RandomFunc
+	b[4] = p.PRF
+	binary.BigEndian.PutUint32(b[5:9], p.Token)
+	b[9] = uint8(p.Prep)
+	copy(b[10:], []byte(p.Identity))
+
+	return b[:len(p.Identity)+10]
 }

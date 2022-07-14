@@ -80,3 +80,51 @@ func TestDecodeEAPPwd(t *testing.T) {
 		t.Errorf("packet.Identity is wrong")
 	}
 }
+
+func TestEncodeEAPPwdResponse(t *testing.T) {
+	// PWD:PWD={LMPWD=1, TotalLength=0 GroupDesc=19 RandomFunc=1 PRF=1 Token=3477573397 Prep=0 Identity=theserver@example.com}
+	p := EAPPacket{
+		Code: EAPRequest,
+		ID: 49,
+		MsgType: EAPpwd,
+		Data: pwd.Encode(&pwd.PWD{
+			LMPWD: 1,
+			GroupDesc: 19,
+			RandomFunc: pwd.DefaultRandomFunc,
+			PRF: pwd.PRFHMACSHA256,
+			Token: 3477573397,
+			Prep: 0,
+			Identity: "theserver@example.com",
+		}),
+	}
+	// Encode(p *EAPPacket, verbose bool, logger *log.Logger) ([]byte, error) {
+	bin, e := Encode(&p, false, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if testing.Verbose() {
+		fmt.Printf("eap.PWDEncode=%+x\n", bin)
+	}
+	out := fmt.Sprintf("%x", bin)
+	if out != "01310024340100130101cf478f1500746865736572766572406578616d706c652e636f6d" {
+		t.Errorf("Encode failed")
+	}
+}
+
+func TestEncodeEAPPwdResponseInvalid(t *testing.T) {
+	p := EAPPacket{
+		Code: EAPFailure,
+		ID: 49,
+	}
+	bin, e := Encode(&p, false, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if testing.Verbose() {
+		fmt.Printf("eap.PWDEncode=%+x\n", bin)
+	}
+	out := fmt.Sprintf("%x", bin)
+	if out != "04310004" {
+		t.Errorf("Encode failed")
+	}
+}

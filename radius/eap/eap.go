@@ -71,18 +71,23 @@ func Encode(p *EAPPacket, verbose bool, logger *log.Logger) ([]byte, error) {
 	b[0] = uint8(p.Code)
 	b[1] = uint8(p.ID)
 	// Skip Len for now, as we don't know this yet (pos 2+3)
-	b[4] = uint8(p.MsgType)
 
+	if p.Code == EAPFailure {
+		binary.BigEndian.PutUint16(b[2:4], uint16(4))
+		return b[:4], nil
+	}
+
+	b[4] = uint8(p.MsgType)
 	aLen := len(p.Data) + 2 // add type+len fields
 	if aLen > 255 || aLen < 2 {
 		panic("Value too big for attr")
 	}
 	copy(b[5:], p.Data)
 
-	// Now set Len (magic 5 is positions 0 to 4)
-	binary.BigEndian.PutUint16(b[2:4], uint16(aLen+5))
+	// Now set Len
+	binary.BigEndian.PutUint16(b[2:4], uint16(aLen+3))
 	if verbose {
 		logger.Printf("packet.send: %+v\n", p)
 	}
-	return b[:aLen+5], nil
+	return b[:aLen+3], nil
 }
