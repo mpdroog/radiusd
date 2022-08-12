@@ -119,7 +119,6 @@ func do_equation(curve elliptic.Curve, x *big.Int) *big.Int {
 	return y2
 }
 
-// not through test yet
 func is_quadratic_residue(y_sqrd, prime *big.Int, qrQnr [2]*big.Int) (int, error) {
 	one := big.NewInt(1)
 
@@ -128,19 +127,18 @@ func is_quadratic_residue(y_sqrd, prime *big.Int, qrQnr [2]*big.Int) (int, error
 	 */
 	pm1 := new(big.Int)
 	pm1 = pm1.Sub(prime, one)
+
 	r, e := rand.Int(rand.Reader, pm1)
 	if e != nil {
-		return -1, e
+		return -2, e
 	}
 	r.Add(r, one)
 
 	res := new(big.Int)
-	res.SetBytes(y_sqrd.Bytes())
-
 	/*
 	 * res = val * r * r which ensures res != val but has same quadratic residocity
 	 */
-	res.Mul(res, r).Mod(res, prime)
+	res.Mul(y_sqrd, r).Mod(res, prime)
 	res.Mul(res, r).Mod(res, prime)
 
 	/*
@@ -159,7 +157,7 @@ func is_quadratic_residue(y_sqrd, prime *big.Int, qrQnr [2]*big.Int) (int, error
 		mask = 0
 	}
 
-	qr_or_qnr := new(big.Int)
+	var qr_or_qnr *big.Int
 	if mask == 0 {
 		qr_or_qnr = qrQnr[0]
 	} else {
@@ -175,6 +173,8 @@ func is_quadratic_residue(y_sqrd, prime *big.Int, qrQnr [2]*big.Int) (int, error
 
 	ret := legendre(res, prime)
 	if ret == -2 {
+		// todo: does this happen?
+		panic("Get here?")
 		return -1, nil
 	}
 
@@ -187,6 +187,7 @@ func is_quadratic_residue(y_sqrd, prime *big.Int, qrQnr [2]*big.Int) (int, error
 	if mask == 0 {
 		ret = 0
 	}
+
 	return ret, nil
 }
 
@@ -200,7 +201,9 @@ func const_time_fill_msb(val int) (ret int) {
 
 func genSeed(ctr uint8, state State) []byte {
 	mac := hmac.New(sha256.New, allZero[:])
-	b := (*[4]byte)(unsafe.Pointer(&state.Token))
+
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, state.Token)
 	mac.Write(b[0:4])
 
 	mac.Write([]byte(state.IDPeer))
@@ -235,9 +238,12 @@ func PassElement(state State) (State, error) {
 			}
 
 			res := legendre(randomValue, prime)
-			if res == -1 {
+			if pos == 0 && res == 1 {
 				qr[pos] = randomValue
 				break
+			} else if pos == 1 && res == -1 {
+				qr[pos] = randomValue
+				break				
 			}
 		}
 	}
@@ -245,11 +251,14 @@ func PassElement(state State) (State, error) {
 		return state, fmt.Errorf("Failed generating quadradic (non)residue")
 	}
 
-	var pm1buf []byte
+	var (
+		//pm1buf []byte
+		pm1big *big.Int
+	)
 	{
-		rnd := new(big.Int)
-		rnd.Sub(prime, big.NewInt(1))
-		pm1buf = rnd.Bytes()
+		pm1big = new(big.Int)
+		pm1big.Sub(prime, big.NewInt(1))
+		//pm1buf = pm1big.Bytes()
 	}
 
 	save := 0
@@ -270,8 +279,12 @@ func PassElement(state State) (State, error) {
 		xCandidate := new(big.Int)
 		xCandidate.SetBytes(prfbuf)
 
-		cmp := memcmp(pm1buf, prfbuf, algo.Params().P.BitLen()/8)
-		skip := const_time_fill_msb(cmp)
+		//cmp := memcmp(pm1buf, prfbuf, algo.Params().P.BitLen()/8)
+		//skip := const_time_fill_msb(cmp)
+		skip := 0
+		if xCandidate.Cmp(pm1big) >= 0 {
+			skip = -1
+		}
 
 		is_odd := 0
 		{
@@ -286,6 +299,27 @@ func PassElement(state State) (State, error) {
 		if e != nil {
 			return state, e
 		}
+
+		/*ok := false
+		{
+			exp := new(big.Int)
+			exp.Add(prime, big.NewInt(1))
+			exp.Rsh(exp, 2)
+
+			y1 := new(big.Int)
+			y1.Exp(y_sqrd, exp, prime)
+
+			y2 := new(big.Int)
+			y2.Sub(prime, y1)
+
+			pre1 := algo.IsOnCurve(xCandidate, y1)
+			pre2 := algo.IsOnCurve(xCandidate, y2)
+			if !pre1 && !pre2 {
+				fmt.Printf("Pre-Points not on elliptic curve\n")
+			} else {
+				ok = true
+			}
+		}*/
 
 		/*
 		* if the candidate >= prime then we want to skip it
@@ -316,19 +350,15 @@ func PassElement(state State) (State, error) {
 		 */
 		if save == 1 {
 			mask = -1
+			//fmt.Printf("Found ok=%t\n", ok)
 		} else {
 			mask = 0
 		}
 
 		if mask == -1 {
+			// TODO: Constant time..
 			xbuf = prfbuf
-		}
-
-		if mask == -1 {
 			save_is_odd = is_odd
-		}
-
-		if mask == -1 {
 			found = -1
 		}
 		found = const_time_select(mask, -1, found)

@@ -121,8 +121,11 @@ func TestRandomCodeParts(t *testing.T) {
 }
 
 func TestConstTimeMemcmp(t *testing.T) {
+	algo := elliptic.P256()
+
 	rnd := new(big.Int)
-	rnd.SetString("115792089210356248762697446949407573530086143415290314195533631308867097853950", 10)
+	rnd.Sub(algo.Params().P, big.NewInt(1))
+	// same as rnd.SetString("115792089210356248762697446949407573530086143415290314195533631308867097853950", 10)
 	pm1buf := rnd.Bytes()
 
 	{
