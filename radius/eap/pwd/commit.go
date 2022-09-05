@@ -20,8 +20,9 @@ type State struct {
 	IDServer string
 	Password string
 
-	X *big.Int
-	Y *big.Int
+	Order *big.Int // algo.N
+	X     *big.Int
+	Y     *big.Int
 }
 
 func KDF(key []byte, label string, resultBitLen uint16) []byte {
@@ -243,7 +244,7 @@ func PassElement(state State) (State, error) {
 				break
 			} else if pos == 1 && res == -1 {
 				qr[pos] = randomValue
-				break				
+				break
 			}
 		}
 	}
@@ -370,6 +371,7 @@ func PassElement(state State) (State, error) {
 	xCandidate, y := constructPWE(algo, save_is_odd, xbuf)
 	state.X = xCandidate
 	state.Y = y
+	state.Order = algo.Params().N
 
 	if !algo.IsOnCurve(xCandidate, y) {
 		return state, fmt.Errorf("Point not on elliptic curve")

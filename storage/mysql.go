@@ -17,9 +17,9 @@ import (
 	"database/sql"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/mpdroog/radiusd/model"
 	"github.com/mpdroog/radiusd/sync"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 )
 

@@ -19,7 +19,7 @@ import (
 
 type AttrPos struct {
 	Begin int
-	End int
+	End   int
 }
 
 type Packet struct {
@@ -115,7 +115,7 @@ func encode(p *Packet, verbose bool, logger *log.Logger) ([]byte, map[AttributeT
 			copy(bb[2:], attr.Bytes())
 		}
 
-		pos[attr.Type()] = AttrPos{Begin: written, End: written+aLen}
+		pos[attr.Type()] = AttrPos{Begin: written, End: written + aLen}
 		written += aLen
 		bb = bb[aLen:]
 	}

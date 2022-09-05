@@ -22,6 +22,10 @@ Implemented RFCs:
 * MSCHAP2 https://tools.ietf.org/html/rfc2759
 * MPPE (RC4 encryption) https://www.ietf.org/rfc/rfc3079.txt
 
+Partly implemented:
+* EAP https://www.ietf.org/rfc/rfc3579.txt
+* EAP-PWD https://datatracker.ietf.org/doc/html/rfc5931 - constant-time NOT properly implemented!
+
 This daemon uses MariaDB/MySQL to store it's data and the SQL-file can
 be found in the `/db` dir.
 

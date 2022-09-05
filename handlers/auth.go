@@ -30,7 +30,11 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 		}
 		h.Logger.Printf("EAPPacket=%+v", p)
 
-		// TODO: Add RFC ref here we can't use this value for the username
+		// Although EAP provides an Identity method to determine the identity of
+		// the peer, the value in the Identity Response may have been truncated
+		// or obfuscated to provide privacy or decorated for routing purposes
+		// [RFC3748], making it inappropriate for usage by the EAP-pwd method.
+		// https://datatracker.ietf.org/doc/html/rfc5931#section-2.8.5.1
 		if p.MsgType == eap.Identity {
 			// TODO: eap logic:
 			// State (radius) + Id (eap, where id keeps +1 on every reply)
@@ -47,17 +51,17 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 
 			// Instruct we want EAP-PWD-ID
 			eapBin, e := eap.Encode(&eap.EAPPacket{
-				Code: eap.EAPRequest,
-				ID: 240,
+				Code:    eap.EAPRequest,
+				ID:      240,
 				MsgType: eap.EAPpwd,
 				Data: pwd.Encode(&pwd.PWD{
-					LMPWD: pwd.DefaultLMPWD,
-					GroupDesc: 19,
+					LMPWD:      pwd.DefaultLMPWD,
+					GroupDesc:  19,
 					RandomFunc: pwd.DefaultRandomFunc,
-					PRF: pwd.PRFHMACSHA256,
-					Token: stateToken,
-					Prep: pwd.PrepNone,
-					Identity: "radius@rootdev.nl", // todo: config?
+					PRF:        pwd.PRFHMACSHA256,
+					Token:      stateToken,
+					Prep:       pwd.PrepNone,
+					Identity:   "radius@rootdev.nl", // todo: config?
 				}),
 			}, h.Verbose, h.Logger)
 			if e != nil {
@@ -74,16 +78,17 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 			)
 			w.Write(req.Response(radius.AccessChallenge, reply, h.Verbose, h.Logger))
 			h.State[string(stateID)] = State{
-				LastID: 240,
-				Token: stateToken,
-				Added: time.Now(),
+				LastID:   240,
+				Token:    stateToken,
+				Added:    time.Now(),
 				RemoteID: p.ID,
 			}
 			return
 		}
 		if p.MsgType == eap.EAPpwd {
 			// EAP-PWD
-			state, ok := h.State[string(req.Attr(radius.State))]
+			stateID := string(req.Attr(radius.State))
+			state, ok := h.State[stateID]
 			if !ok {
 				h.Logger.Printf("auth.begin(getState) nothing found")
 				return
@@ -98,7 +103,7 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 			if limits.Pass == "" {
 				eapBin, e := eap.Encode(&eap.EAPPacket{
 					Code: eap.EAPFailure,
-					ID: state.LastID+1,
+					ID:   state.LastID + 1,
 				}, h.Verbose, h.Logger)
 				if e != nil {
 					h.Logger.Printf("auth.begin(eapEncode) e=" + e.Error())
@@ -112,14 +117,63 @@ func (h *Handler) Auth(w io.Writer, req *radius.Packet) {
 				)
 
 				w.Write(req.Response(radius.AccessReject, reply, h.Verbose, h.Logger))
+				// TODO: Save state in map again?
 				state.LastID++
+				h.State[string(stateID)] = state
 				return
 			}
 
+			//panic("N")
+			// I guess we can add compute_password_element+compute_scalar_element
+			ecState, e := pwd.PassElement(pwd.State{
+				Token:    2, // todo: whats up with this?
+				IDPeer:   "client",
+				IDServer: "radius.rootdev.nl",
+				Password: "minimum",
+			})
+			// TODO: Really sure N==order from C?
+			myElement, myScalar, e := pwd.Compute_scalar_element(ecState.Order, ecState.X, ecState.Order)
+			if e != nil {
+				h.Logger.Printf("auth.begin(Compute_scalar_element) e=" + e.Error())
+				return
+			}
+
+			data := new(bytes.Buffer)
+			if _, e := data.Write(myElement); e != nil {
+				h.Logger.Printf("auth.begin(data.Write1) e=" + e.Error())
+				return
+			}
+			if _, e := data.Write(myScalar); e != nil {
+				h.Logger.Printf("auth.begin(data.Write2) e=" + e.Error())
+				return
+			}
+
+			eapBin, e := eap.Encode(&eap.EAPPacket{
+				Code: eap.EAPRequest,
+				ID:   state.LastID + 1,
+				Data: data.Bytes(),
+			}, h.Verbose, h.Logger)
+			if e != nil {
+				h.Logger.Printf("auth.begin(eapEncode) e=" + e.Error())
+				return
+			}
+			curAuth := req.Attr(radius.MessageAuthenticator)
+			reply = append(reply,
+				radius.NewAttr(radius.EAPMessage, eapBin, uint8(2+len(eapBin))),
+				radius.NewAttr(radius.MessageAuthenticator, curAuth, uint8(2+len(curAuth))),
+				radius.NewAttr(radius.State, req.Attr(radius.State), 18),
+			)
+
+			if _, e := w.Write(req.Response(radius.AccessChallenge, reply, h.Verbose, h.Logger)); e != nil {
+				h.Logger.Printf("auth.begin(Write-end) e=" + e.Error())
+				return
+			}
+			state.LastID++
+			h.State[string(stateID)] = state
+			return
 		}
 
-		panic("next?")
-		return
+		panic("Unsupported state?")
 	}
 
 	user := string(req.Attr(radius.UserName))
